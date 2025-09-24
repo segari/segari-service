@@ -51,9 +51,9 @@ The application follows standard Spring Boot conventions:
 
 ## Key Technologies
 
-- **Java Version**: 24 (as specified in pom.xml, though currently running on Java 11)
+- **Java Version**: 24 (OpenJDK 24.0.2-tem via SDKMAN as specified in .sdkmanrc)
 - **Spring Boot**: 3.5.6 with parent POM inheritance
-- **Dependencies**: Spring Web, Spring Security, Spring Boot Test, Spring Security Test
+- **Dependencies**: Spring Web, Spring Security, Spring Boot Test, Spring Security Test, Lombok, usb4java
 - **Build Tool**: Maven with wrapper (mvnw)
 
 ## Testing

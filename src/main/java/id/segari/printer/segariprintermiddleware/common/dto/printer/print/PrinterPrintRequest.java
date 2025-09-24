@@ -1,0 +1,6 @@
+package id.segari.printer.segariprintermiddleware.common.dto.printer.print;
+
+import jakarta.validation.constraints.NotBlank;
+
+public record PrinterPrintRequest(int id, @NotBlank String command) {
+}
