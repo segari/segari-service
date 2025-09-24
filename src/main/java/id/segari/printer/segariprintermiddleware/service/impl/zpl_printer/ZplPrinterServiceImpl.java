@@ -1,12 +1,12 @@
 package id.segari.printer.segariprintermiddleware.service.impl.zpl_printer;
 
 import id.segari.printer.segariprintermiddleware.common.InternalResponseCode;
-import id.segari.printer.segariprintermiddleware.common.dto.printer.connect.PrinterConnectRequest;
+import id.segari.printer.segariprintermiddleware.common.dto.PrinterUsb;
 import id.segari.printer.segariprintermiddleware.common.dto.printer.PrinterConnectedResponse;
+import id.segari.printer.segariprintermiddleware.common.dto.printer.connect.PrinterConnectRequest;
 import id.segari.printer.segariprintermiddleware.common.dto.printer.connect.PrinterConnectResponse;
 import id.segari.printer.segariprintermiddleware.common.dto.printer.disconnect.PrinterDisconnectResponse;
 import id.segari.printer.segariprintermiddleware.common.dto.printer.print.PrinterPrintRequest;
-import id.segari.printer.segariprintermiddleware.common.dto.PrinterUsb;
 import id.segari.printer.segariprintermiddleware.exception.PrinterException;
 import id.segari.printer.segariprintermiddleware.service.PrinterService;
 import org.springframework.http.HttpStatus;
