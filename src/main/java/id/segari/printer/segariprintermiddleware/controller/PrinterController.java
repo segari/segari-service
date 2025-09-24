@@ -8,12 +8,15 @@ import id.segari.printer.segariprintermiddleware.common.dto.printer.disconnect.P
 import id.segari.printer.segariprintermiddleware.common.dto.printer.print.PrinterPrintRequest;
 import id.segari.printer.segariprintermiddleware.common.response.SuccessResponse;
 import id.segari.printer.segariprintermiddleware.service.PrinterService;
+import jakarta.validation.Valid;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/v1/printer")
+@Validated
 public class PrinterController {
     private final PrinterService printerService;
 
@@ -22,13 +25,13 @@ public class PrinterController {
     }
 
     @PostMapping("/connect")
-    public SuccessResponse<PrinterConnectResponse> connect(@RequestBody PrinterConnectRequest request){
+    public SuccessResponse<PrinterConnectResponse> connect(@Valid @RequestBody PrinterConnectRequest request){
         final PrinterConnectResponse response = printerService.connect(request);
         return new SuccessResponse<>(response.code(), response);
     }
 
     @PostMapping("/print")
-    public void print(@RequestBody PrinterPrintRequest request) {
+    public void print(@Valid @RequestBody PrinterPrintRequest request) {
         printerService.print(request);
     }
 

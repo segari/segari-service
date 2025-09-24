@@ -10,6 +10,7 @@ import id.segari.printer.segariprintermiddleware.common.dto.printer.print.Printe
 import id.segari.printer.segariprintermiddleware.exception.PrinterException;
 import id.segari.printer.segariprintermiddleware.service.PrinterService;
 import org.springframework.http.HttpStatus;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import org.usb4java.*;
 
@@ -59,7 +60,7 @@ public class ZplPrinterServiceImpl implements PrinterService {
         }
     }
 
-    private static ByteBuffer getByteBuffer(PrinterPrintRequest request) {
+    private ByteBuffer getByteBuffer(PrinterPrintRequest request) {
         final byte[] data = request.command().getBytes(StandardCharsets.UTF_8);
         final ByteBuffer buffer = ByteBuffer.allocateDirect(data.length);
         buffer.put(data);
@@ -91,10 +92,12 @@ public class ZplPrinterServiceImpl implements PrinterService {
                 if (descriptorOptional.isPresent()){
                     final DeviceDescriptor descriptor = descriptorOptional.get();
                     if (descriptor.bDeviceClass() == 7 || isPrinterVendor(descriptor.idVendor())){
+                        final PrinterDescription printerDescription = getPrinterDescription(device, descriptor);
                         final PrinterUsb printer = new PrinterUsb(
                                 descriptor.idVendor(),
                                 descriptor.idProduct(),
-                                getProductName(device, descriptor),
+                                printerDescription.productName(),
+                                printerDescription.serialNumber(),
                                 LibUsb.getDeviceAddress(device),
                                 LibUsb.getBusNumber(device)
                                 );
@@ -108,17 +111,24 @@ public class ZplPrinterServiceImpl implements PrinterService {
         }
     }
 
-    private String getProductName(Device device, DeviceDescriptor descriptor) {
+    private PrinterDescription getPrinterDescription(Device device, DeviceDescriptor descriptor) {
         final DeviceHandle deviceHandle = new DeviceHandle();
         final int status = LibUsb.open(device, deviceHandle);
         try {
-            if (status != LibUsb.SUCCESS) return getUnknown();
-            return getProductName(descriptor, deviceHandle);
+            if (status != LibUsb.SUCCESS) throw new RuntimeException();
+            return new PrinterDescription(
+                    getProductName(descriptor, deviceHandle),
+                    getSerialNumber(descriptor, deviceHandle)
+                    );
         } catch (Exception e) {
-            return getUnknown();
+            return new PrinterDescription(getUnknown(), getUnknown());
         }finally {
             LibUsb.close(deviceHandle);
         }
+    }
+
+    private String getSerialNumber(DeviceDescriptor descriptor, DeviceHandle deviceHandle) {
+        return LibUsb.getStringDescriptor(deviceHandle, descriptor.iSerialNumber());
     }
 
     private String getUnknown() {
@@ -188,13 +198,45 @@ public class ZplPrinterServiceImpl implements PrinterService {
         }
     }
 
-    private static DeviceHandle getDeviceHandle(PrinterConnectRequest request, Context context) {
-        final DeviceHandle deviceHandle = LibUsb.openDeviceWithVidPid(context, request.vendorId(), request.productId());
+    private DeviceHandle getDeviceHandle(PrinterConnectRequest request, Context context) {
+        final DeviceHandle deviceHandle = getDeviceHandleBySerial(request, context);
         if (deviceHandle == null){
             LibUsb.exit(context);
             throw new PrinterException(InternalResponseCode.USB_DEVICE_NOT_FOUND, HttpStatus.BAD_REQUEST, "USB device not found: vendorId="+request.vendorId()+", productId="+request.productId());
         }
         return deviceHandle;
+    }
+
+    @Nullable
+    private DeviceHandle getDeviceHandleBySerial(PrinterConnectRequest request, Context context) {
+        final DeviceList list = new DeviceList();
+        LibUsb.getDeviceList(context, list);
+
+        try {
+            for (Device device : list) {
+                final DeviceDescriptor descriptor = new DeviceDescriptor();
+                LibUsb.getDeviceDescriptor(device, descriptor);
+
+                if (descriptor.idVendor() == request.vendorId() && descriptor.idProduct() == request.productId()) {
+                    final DeviceHandle handle = new DeviceHandle();
+                    int result = LibUsb.open(device, handle);
+
+                    if (result == LibUsb.SUCCESS) {
+                        // Get serial number
+                        final String serial = LibUsb.getStringDescriptor(handle, descriptor.iSerialNumber());
+
+                        if (request.serialNumber().equals(serial)) {
+                            return handle;
+                        } else {
+                            LibUsb.close(handle);
+                        }
+                    }
+                }
+            }
+        } finally {
+            LibUsb.freeDeviceList(list, true);
+        }
+        return null;
     }
 
     private void initContext(Context context) {
