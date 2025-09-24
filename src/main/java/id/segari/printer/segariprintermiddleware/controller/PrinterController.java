@@ -8,6 +8,7 @@ import id.segari.printer.segariprintermiddleware.common.dto.printer.disconnect.P
 import id.segari.printer.segariprintermiddleware.common.dto.printer.print.PrinterPrintRequest;
 import id.segari.printer.segariprintermiddleware.common.response.SuccessResponse;
 import id.segari.printer.segariprintermiddleware.service.PrinterService;
+import id.segari.printer.segariprintermiddleware.service.UrlService;
 import jakarta.validation.Valid;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -19,9 +20,11 @@ import java.util.List;
 @Validated
 public class PrinterController {
     private final PrinterService printerService;
+    private final UrlService urlService;
 
-    public PrinterController(PrinterService printerService) {
+    public PrinterController(PrinterService printerService, UrlService urlService) {
         this.printerService = printerService;
+        this.urlService = urlService;
     }
 
     @GetMapping("/connected/{id}")
@@ -54,5 +57,10 @@ public class PrinterController {
     @GetMapping("/usb")
     public SuccessResponse<List<PrinterUsb>> getUsb(){
         return new SuccessResponse<>(InternalResponseCode.SUCCESS, printerService.getUsb());
+    }
+
+    @GetMapping("/print-domain")
+    public SuccessResponse<String> getPrintDomain(){
+        return new SuccessResponse<>(InternalResponseCode.SUCCESS, urlService.getPrintDomain());
     }
 }
