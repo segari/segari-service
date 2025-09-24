@@ -5,6 +5,7 @@ public enum InternalResponseCode {
     BASIC,
     NOT_FOUND,
     INVALID_ARGUMENT,
+    VALIDATION_ERROR,
     INTERNAL_ERROR,
     INIT_CONTEXT_FAILED,
     USB_DEVICE_NOT_FOUND,
