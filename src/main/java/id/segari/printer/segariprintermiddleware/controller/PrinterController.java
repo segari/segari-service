@@ -24,6 +24,16 @@ public class PrinterController {
         this.printerService = printerService;
     }
 
+    @GetMapping("/connected/{id}")
+    public SuccessResponse<Boolean> isConnected(@PathVariable int id){
+        return new SuccessResponse<>(InternalResponseCode.SUCCESS, printerService.isConnected(id));
+    }
+
+    @GetMapping("/ping")
+    public SuccessResponse<String> ping(){
+        return new SuccessResponse<>(InternalResponseCode.SUCCESS, "PONG");
+    }
+
     @PostMapping("/connect")
     public SuccessResponse<PrinterConnectResponse> connect(@Valid @RequestBody PrinterConnectRequest request){
         final PrinterConnectResponse response = printerService.connect(request);

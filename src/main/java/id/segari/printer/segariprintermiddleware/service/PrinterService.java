@@ -15,4 +15,5 @@ public interface PrinterService {
     void print(PrinterPrintRequest request);
     List<PrinterUsb> getUsb();
     List<PrinterConnectedResponse> getConnected();
+    boolean isConnected(int id);
 }

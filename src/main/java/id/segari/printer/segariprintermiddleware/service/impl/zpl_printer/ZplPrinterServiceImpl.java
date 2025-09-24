@@ -170,6 +170,11 @@ public class ZplPrinterServiceImpl implements PrinterService {
         return List.of();
     }
 
+    @Override
+    public boolean isConnected(int id) {
+        return printerById.containsKey(id);
+    }
+
     private Printer openUsbDevice(PrinterConnectRequest request) {
         final Context context = new Context();
         initContext(context);
