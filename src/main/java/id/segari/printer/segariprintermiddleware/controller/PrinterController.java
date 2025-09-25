@@ -7,8 +7,8 @@ import id.segari.printer.segariprintermiddleware.common.dto.printer.connect.Prin
 import id.segari.printer.segariprintermiddleware.common.dto.printer.disconnect.PrinterDisconnectResponse;
 import id.segari.printer.segariprintermiddleware.common.dto.printer.print.PrinterPrintRequest;
 import id.segari.printer.segariprintermiddleware.common.response.SuccessResponse;
-import id.segari.printer.segariprintermiddleware.service.PrinterService;
 import id.segari.printer.segariprintermiddleware.service.PrintQueueService;
+import id.segari.printer.segariprintermiddleware.service.PrinterService;
 import id.segari.printer.segariprintermiddleware.service.UrlService;
 import jakarta.validation.Valid;
 import org.springframework.validation.annotation.Validated;

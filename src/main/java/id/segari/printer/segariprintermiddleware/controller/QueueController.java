@@ -2,6 +2,8 @@ package id.segari.printer.segariprintermiddleware.controller;
 
 import id.segari.printer.segariprintermiddleware.common.InternalResponseCode;
 import id.segari.printer.segariprintermiddleware.common.dto.printer.print.PrinterPrintRequest;
+import id.segari.printer.segariprintermiddleware.common.dto.queue.QueueOverallStatusResponse;
+import id.segari.printer.segariprintermiddleware.common.dto.queue.QueueStatusResponse;
 import id.segari.printer.segariprintermiddleware.common.response.SuccessResponse;
 import id.segari.printer.segariprintermiddleware.service.PrintQueueService;
 import org.springframework.web.bind.annotation.*;
@@ -19,29 +21,21 @@ public class QueueController {
     }
 
     @GetMapping("/status")
-    public SuccessResponse<Map<String, Object>> getOverallStatus() {
+    public SuccessResponse<QueueOverallStatusResponse> getOverallStatus() {
         Map<Integer, Integer> queueSizes = printQueueService.getAllQueueSizes();
         int totalQueues = printQueueService.getTotalQueues();
         int totalJobs = queueSizes.values().stream().mapToInt(Integer::intValue).sum();
 
-        Map<String, Object> status = Map.of(
-                "totalQueues", totalQueues,
-                "totalPendingJobs", totalJobs,
-                "queueSizes", queueSizes
-        );
+        QueueOverallStatusResponse status = new QueueOverallStatusResponse(totalQueues, totalJobs, queueSizes);
 
         return new SuccessResponse<>(InternalResponseCode.SUCCESS, status);
     }
 
     @GetMapping("/status/{id}")
-    public SuccessResponse<Map<String, Object>> getQueueStatus(@PathVariable int id) {
+    public SuccessResponse<QueueStatusResponse> getQueueStatus(@PathVariable int id) {
         int queueSize = printQueueService.getQueueSize(id);
 
-        Map<String, Object> status = Map.of(
-                "printerId", id,
-                "queueSize", queueSize,
-                "hasQueue", queueSize >= 0
-        );
+        QueueStatusResponse status = new QueueStatusResponse(id, queueSize, queueSize >= 0);
 
         return new SuccessResponse<>(InternalResponseCode.SUCCESS, status);
     }
