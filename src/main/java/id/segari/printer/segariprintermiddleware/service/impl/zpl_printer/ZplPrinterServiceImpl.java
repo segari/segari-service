@@ -9,6 +9,7 @@ import id.segari.printer.segariprintermiddleware.common.dto.printer.disconnect.P
 import id.segari.printer.segariprintermiddleware.common.dto.printer.print.PrinterPrintRequest;
 import id.segari.printer.segariprintermiddleware.exception.PrinterException;
 import id.segari.printer.segariprintermiddleware.service.PrinterService;
+import jakarta.annotation.PreDestroy;
 import org.springframework.http.HttpStatus;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
@@ -249,5 +250,17 @@ public class ZplPrinterServiceImpl implements PrinterService {
         if (status != LibUsb.SUCCESS){
             throw new PrinterException(InternalResponseCode.INIT_CONTEXT_FAILED, HttpStatus.CONFLICT, "Unable to initialize libusb: " + LibUsb.strError(status));
         }
+    }
+
+    @PreDestroy
+    public void shutdown(){
+        for (Printer printer : printerById.values()) {
+            final Context context = printer.context();
+            final DeviceHandle deviceHandle = printer.deviceHandle();
+            LibUsb.releaseInterface(deviceHandle, 0);
+            LibUsb.close(deviceHandle);
+            LibUsb.exit(context);
+        }
+        printerById.clear();
     }
 }

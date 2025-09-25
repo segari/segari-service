@@ -8,6 +8,7 @@ import id.segari.printer.segariprintermiddleware.common.dto.printer.disconnect.P
 import id.segari.printer.segariprintermiddleware.common.dto.printer.print.PrinterPrintRequest;
 import id.segari.printer.segariprintermiddleware.common.response.SuccessResponse;
 import id.segari.printer.segariprintermiddleware.service.PrinterService;
+import id.segari.printer.segariprintermiddleware.service.PrintQueueService;
 import id.segari.printer.segariprintermiddleware.service.UrlService;
 import jakarta.validation.Valid;
 import org.springframework.validation.annotation.Validated;
@@ -20,10 +21,12 @@ import java.util.List;
 @Validated
 public class PrinterController {
     private final PrinterService printerService;
+    private final PrintQueueService printQueueService;
     private final UrlService urlService;
 
-    public PrinterController(PrinterService printerService, UrlService urlService) {
+    public PrinterController(PrinterService printerService, PrintQueueService printQueueService, UrlService urlService) {
         this.printerService = printerService;
+        this.printQueueService = printQueueService;
         this.urlService = urlService;
     }
 
@@ -44,13 +47,15 @@ public class PrinterController {
     }
 
     @PostMapping("/print")
-    public void print(@Valid @RequestBody PrinterPrintRequest request) {
-        printerService.print(request);
+    public SuccessResponse<String> print(@Valid @RequestBody PrinterPrintRequest request) {
+        printQueueService.addToQueue(request);
+        return new SuccessResponse<>(InternalResponseCode.SUCCESS, "Print job added to queue");
     }
 
     @DeleteMapping("/disconnect/{id}")
     public SuccessResponse<PrinterDisconnectResponse> disconnect(@PathVariable int id){
         final PrinterDisconnectResponse response = printerService.disconnect(id);
+        printQueueService.removePrinterQueue(id);
         return new SuccessResponse<>(response.code(), response);
     }
 
