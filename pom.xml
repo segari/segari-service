@@ -28,6 +28,10 @@
 	</scm>
 	<properties>
 		<java.version>24</java.version>
+		<app.version>1.0.0</app.version>
+		<app.name>Segari Printer Middleware</app.name>
+		<app.vendor>Segari</app.vendor>
+		<app.description>Printer middleware service for handling print operations</app.description>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -70,6 +74,10 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-validation</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-websocket</artifactId>
 		</dependency>
 	</dependencies>
 
@@ -117,5 +125,137 @@
 			</plugin>
 		</plugins>
 	</build>
+
+	<!-- Profiles for different build types -->
+	<profiles>
+			<!-- Windows executable packaging profile -->
+			<profile>
+				<id>windows-exe</id>
+				<build>
+					<plugins>
+						<!-- Create runtime image with jlink -->
+						<plugin>
+							<groupId>org.apache.maven.plugins</groupId>
+							<artifactId>maven-jlink-plugin</artifactId>
+							<version>3.1.0</version>
+							<executions>
+								<execution>
+									<phase>package</phase>
+									<goals>
+										<goal>jlink</goal>
+									</goals>
+									<configuration>
+										<runtimeImage>${project.build.directory}/jre</runtimeImage>
+										<modules>
+											<module>java.base</module>
+											<module>java.desktop</module>
+											<module>java.logging</module>
+											<module>java.management</module>
+											<module>java.naming</module>
+											<module>java.net.http</module>
+											<module>java.security.sasl</module>
+											<module>java.sql</module>
+											<module>jdk.crypto.ec</module>
+											<module>jdk.unsupported</module>
+										</modules>
+										<launcher>app=${project.groupId}/${project.artifactId}</launcher>
+										<noHeaderFiles>true</noHeaderFiles>
+										<noManPages>true</noManPages>
+									</configuration>
+								</execution>
+							</executions>
+						</plugin>
+
+						<!-- Package as Windows executable with jpackage -->
+						<plugin>
+							<groupId>org.panteleyev</groupId>
+							<artifactId>jpackage-maven-plugin</artifactId>
+							<version>1.6.5</version>
+							<executions>
+								<execution>
+									<phase>verify</phase>
+									<goals>
+										<goal>jpackage</goal>
+									</goals>
+									<configuration>
+										<name>${project.artifactId}</name>
+										<appVersion>${app.version}</appVersion>
+										<vendor>${app.vendor}</vendor>
+										<description>${app.description}</description>
+										<copyright>Copyright © 2024 ${app.vendor}</copyright>
+
+										<!-- Input configuration -->
+										<input>${project.build.directory}</input>
+										<mainJar>${project.artifactId}-${project.version}.jar</mainJar>
+										<mainClass>${project.groupId}.${project.artifactId}.SegariPrinterMiddlewareApplication</mainClass>
+
+										<!-- Output configuration -->
+										<destination>${project.build.directory}/dist</destination>
+										<type>EXE</type>
+
+										<!-- Runtime configuration -->
+										<runtimeImage>${project.build.directory}/jre</runtimeImage>
+
+										<!-- JVM options -->
+										<javaOptions>
+											<option>--enable-native-access=ALL-UNNAMED</option>
+											<option>-Dspring.profiles.active=prod</option>
+											<option>-Xmx512m</option>
+										</javaOptions>
+
+										<!-- Windows specific -->
+										<winDirChooser>false</winDirChooser>
+										<winPerUserInstall>false</winPerUserInstall>
+										<winShortcut>true</winShortcut>
+										<winMenu>true</winMenu>
+									</configuration>
+								</execution>
+							</executions>
+						</plugin>
+					</plugins>
+				</build>
+			</profile>
+
+			<!-- Portable executable profile (no installer) -->
+			<profile>
+				<id>portable-exe</id>
+				<build>
+					<plugins>
+						<plugin>
+							<groupId>org.panteleyev</groupId>
+							<artifactId>jpackage-maven-plugin</artifactId>
+							<version>1.6.5</version>
+							<executions>
+								<execution>
+									<phase>verify</phase>
+									<goals>
+										<goal>jpackage</goal>
+									</goals>
+									<configuration>
+										<name>${project.artifactId}</name>
+										<appVersion>${app.version}</appVersion>
+										<vendor>${app.vendor}</vendor>
+										<description>${app.description}</description>
+
+										<input>${project.build.directory}</input>
+										<mainJar>${project.artifactId}-${project.version}.jar</mainJar>
+										<mainClass>${project.groupId}.${project.artifactId}.SegariPrinterMiddlewareApplication</mainClass>
+
+										<destination>${project.build.directory}/dist</destination>
+										<type>APP_IMAGE</type>
+
+										<javaOptions>
+											<option>--enable-native-access=ALL-UNNAMED</option>
+											<option>-Dspring.profiles.active=prod</option>
+											<option>-Xmx512m</option>
+										</javaOptions>
+									</configuration>
+								</execution>
+							</executions>
+						</plugin>
+					</plugins>
+				</build>
+			</profile>
+	</profiles>
 
 </project>
