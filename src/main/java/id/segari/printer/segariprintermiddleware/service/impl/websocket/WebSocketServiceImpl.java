@@ -5,7 +5,10 @@ import id.segari.printer.segariprintermiddleware.common.dto.websocket.WebSocketS
 import id.segari.printer.segariprintermiddleware.exception.InternalBaseException;
 import id.segari.printer.segariprintermiddleware.service.PrintQueueService;
 import id.segari.printer.segariprintermiddleware.service.WebSocketService;
+import id.segari.printer.segariprintermiddleware.service.impl.UpdateServiceImpl;
 import jakarta.annotation.PreDestroy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.messaging.simp.stomp.*;
@@ -21,6 +24,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 @Service
 public class WebSocketServiceImpl implements WebSocketService {
+
     static final AtomicBoolean isConnecting = new AtomicBoolean(false);
     static final AtomicLong connectedWarehouseId = new AtomicLong(0L);
     static LocalDateTime lastMessageTime;
@@ -85,7 +89,7 @@ public class WebSocketServiceImpl implements WebSocketService {
     private void tryConnect(long warehouseId) {
         try {
             if (!createAndConnect(warehouseId).get(5, TimeUnit.SECONDS)){
-                throw new InternalBaseException(InternalResponseCode.WEBSOCKET_CONNECTION_FAILED, HttpStatus.INTERNAL_SERVER_ERROR, "Failed to connect to WebSocket");
+                throw new RuntimeException();
             }
         } catch (Exception e) {
             throw new InternalBaseException(InternalResponseCode.WEBSOCKET_CONNECTION_FAILED, HttpStatus.INTERNAL_SERVER_ERROR, "Failed to connect to WebSocket: " + e.getMessage());
@@ -99,7 +103,7 @@ public class WebSocketServiceImpl implements WebSocketService {
             final StompFrameHandler frameHandler = new PrintStompFrameHandler(printQueueService);
             final StompSessionHandler sessionHandler = getSessionHandler(warehouseId, frameHandler, result);
 
-            stompClient.connectAsync(serverUrl, sessionHandler)
+            stompClient.connectAsync(serverUrl+"/ws", sessionHandler)
                     .thenAccept(session -> stompSession = session)
                     .exceptionally(_ -> {
                         isConnecting.set(false);

@@ -43,6 +43,7 @@ public class PrintStompSessionHandlerAdapter extends StompSessionHandlerAdapter 
         isConnecting.set(false);
         try {
             session.subscribe(topicDestination + "/" + warehouseId, printStompFrameHandler);
+            connectedWarehouseId.addAndGet(warehouseId);
             result.complete(true);
         } catch (Exception e) {
             result.complete(false);
