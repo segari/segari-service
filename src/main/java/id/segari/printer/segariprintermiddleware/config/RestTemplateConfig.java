@@ -9,7 +9,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
 @Configuration
-public class PollingConfig {
+public class RestTemplateConfig {
 
     @Bean
     public RestTemplate restTemplate() {
@@ -22,10 +22,5 @@ public class PollingConfig {
 
         restTemplate.setRequestFactory(factory);
         return restTemplate;
-    }
-
-    @Bean
-    public ScheduledExecutorService scheduledExecutorService() {
-        return Executors.newScheduledThreadPool(2);
     }
 }

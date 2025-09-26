@@ -24,9 +24,9 @@ public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
-    @ExceptionHandler(PrinterException.class)
+    @ExceptionHandler(InternalBaseException.class)
     public ResponseEntity<ErrorResponse> handlePrinterException(
-            PrinterException ex,
+            InternalBaseException ex,
             HttpServletRequest request) {
 
         log.error("PrinterException occurred: {} - Code: {}", ex.getMessage(), ex.getCode(), ex);

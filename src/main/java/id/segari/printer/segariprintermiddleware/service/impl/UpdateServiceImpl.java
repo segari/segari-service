@@ -1,10 +1,13 @@
 package id.segari.printer.segariprintermiddleware.service.impl;
 
 import id.segari.printer.segariprintermiddleware.common.dto.update.VersionInfo;
+import id.segari.printer.segariprintermiddleware.common.dto.external.SegariResponse;
 import id.segari.printer.segariprintermiddleware.service.UpdateService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -24,7 +27,7 @@ public class UpdateServiceImpl implements UpdateService {
     @Value("${app.version:1.0.0}")
     private String currentVersion;
 
-    @Value("${update.server.url:}")
+    @Value("${segari.backend.endpoint}")
     private String updateServerUrl;
 
     @Value("${update.check.enabled:true}")
@@ -54,14 +57,18 @@ public class UpdateServiceImpl implements UpdateService {
 
         try {
             logger.debug("Checking for updates from: {}", updateServerUrl);
-            String checkUrl = updateServerUrl + "/version?current=" + currentVersion;
 
-            VersionInfo versionInfo = restTemplate.getForObject(checkUrl, VersionInfo.class);
+            SegariResponse<String> response = restTemplate.exchange(
+                updateServerUrl,
+                HttpMethod.GET,
+                null,
+                new ParameterizedTypeReference<SegariResponse<String>>() {}
+            ).getBody();
 
-            if (versionInfo != null) {
-                logger.info("Update check completed. Current: {}, Latest: {}, Update available: {}",
-                          versionInfo.currentVersion(), versionInfo.latestVersion(), versionInfo.updateAvailable());
-                return versionInfo;
+            if (response != null && response.data() != null) {
+                logger.info("Update check completed. Response: {}", response.message());
+                // Parse response data to create VersionInfo - assuming response.data() contains version info
+                return new VersionInfo(currentVersion, response.data(), true, "", response.message());
             }
 
         } catch (Exception e) {

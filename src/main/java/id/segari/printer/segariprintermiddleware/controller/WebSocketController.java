@@ -15,29 +15,21 @@ public class WebSocketController {
         this.webSocketService = webSocketService;
     }
 
-    @PostMapping("/connect")
-    public SuccessResponse<String> connect() {
-        try {
-            webSocketService.connect();
-            return new SuccessResponse<>(InternalResponseCode.SUCCESS, "WebSocket connection initiated");
-        } catch (Exception e) {
-            return new SuccessResponse<>(InternalResponseCode.SUCCESS, "Connection failed: " + e.getMessage());
-        }
+    @PostMapping("/connect/{warehouseId}")
+    public SuccessResponse<Boolean> connect(@PathVariable long warehouseId) {
+        webSocketService.connect(warehouseId);
+        return new SuccessResponse<>(InternalResponseCode.SUCCESS, true);
     }
 
-    @PostMapping("/disconnect")
-    public SuccessResponse<String> disconnect() {
-        try {
-            webSocketService.disconnect();
-            return new SuccessResponse<>(InternalResponseCode.SUCCESS, "WebSocket disconnected successfully");
-        } catch (Exception e) {
-            return new SuccessResponse<>(InternalResponseCode.SUCCESS, "Disconnect failed: " + e.getMessage());
-        }
+    @PostMapping("/disconnect/{warehouseId}")
+    public SuccessResponse<Boolean> disconnect(@PathVariable long warehouseId) {
+        webSocketService.disconnect(warehouseId);
+        return new SuccessResponse<>(InternalResponseCode.SUCCESS, true);
     }
 
-    @GetMapping("/status")
-    public SuccessResponse<WebSocketStatus> getStatus() {
-        WebSocketStatus status = webSocketService.getStatus();
+    @GetMapping("/status/{warehouseId}")
+    public SuccessResponse<WebSocketStatus> getStatus(@PathVariable long warehouseId) {
+        WebSocketStatus status = webSocketService.getStatus(warehouseId);
         return new SuccessResponse<>(InternalResponseCode.SUCCESS, status);
     }
 }

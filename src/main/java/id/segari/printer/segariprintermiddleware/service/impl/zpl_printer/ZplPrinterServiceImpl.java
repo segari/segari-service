@@ -7,7 +7,7 @@ import id.segari.printer.segariprintermiddleware.common.dto.printer.connect.Prin
 import id.segari.printer.segariprintermiddleware.common.dto.printer.connect.PrinterConnectResponse;
 import id.segari.printer.segariprintermiddleware.common.dto.printer.disconnect.PrinterDisconnectResponse;
 import id.segari.printer.segariprintermiddleware.common.dto.printer.print.PrinterPrintRequest;
-import id.segari.printer.segariprintermiddleware.exception.PrinterException;
+import id.segari.printer.segariprintermiddleware.exception.InternalBaseException;
 import id.segari.printer.segariprintermiddleware.service.PrinterService;
 import jakarta.annotation.PreDestroy;
 import org.springframework.http.HttpStatus;
@@ -50,14 +50,14 @@ public class ZplPrinterServiceImpl implements PrinterService {
     @Override
     public void print(PrinterPrintRequest request) {
         if (!printerById.containsKey(request.id())) {
-            throw new PrinterException(InternalResponseCode.CANNOT_FIND_CONNECTED_PRINTER, HttpStatus.BAD_REQUEST, "Cannot find connected printer ith id: " + request.id());
+            throw new InternalBaseException(InternalResponseCode.CANNOT_FIND_CONNECTED_PRINTER, HttpStatus.BAD_REQUEST, "Cannot find connected printer ith id: " + request.id());
         }
         final Printer printer = printerById.get(request.id());
         final ByteBuffer buffer = getByteBuffer(request);
         final IntBuffer transferred = IntBuffer.allocate(1);
         final int status = LibUsb.bulkTransfer(printer.deviceHandle(), (byte) 0x01, buffer, transferred, 5000); // 0x01 is harcoded. use findPrinterEndpoint later
         if (status != LibUsb.SUCCESS){
-            throw new PrinterException(InternalResponseCode.FAILED_TO_PRINT, HttpStatus.CONFLICT, "Failed to print");
+            throw new InternalBaseException(InternalResponseCode.FAILED_TO_PRINT, HttpStatus.CONFLICT, "Failed to print");
         }
     }
 
@@ -161,7 +161,7 @@ public class ZplPrinterServiceImpl implements PrinterService {
         final DeviceList devices = new DeviceList();
         final int status = LibUsb.getDeviceList(context, devices);
         if (status < 0){
-            throw new PrinterException(InternalResponseCode.UNABLE_TO_GET_DEVICE_LIST, HttpStatus.CONFLICT, "Unable to get device list: " + LibUsb.strError(status));
+            throw new InternalBaseException(InternalResponseCode.UNABLE_TO_GET_DEVICE_LIST, HttpStatus.CONFLICT, "Unable to get device list: " + LibUsb.strError(status));
         }
         return devices;
     }
@@ -190,7 +190,7 @@ public class ZplPrinterServiceImpl implements PrinterService {
         if (status != LibUsb.SUCCESS){
             LibUsb.close(deviceHandle);
             LibUsb.exit(context);
-            throw new PrinterException(InternalResponseCode.UNABLE_TO_CLAIM_INTERFACE, HttpStatus.CONFLICT, "Unable to claim interface: " + LibUsb.strError(status));
+            throw new InternalBaseException(InternalResponseCode.UNABLE_TO_CLAIM_INTERFACE, HttpStatus.CONFLICT, "Unable to claim interface: " + LibUsb.strError(status));
         }
     }
 
@@ -200,7 +200,7 @@ public class ZplPrinterServiceImpl implements PrinterService {
         if (status != LibUsb.SUCCESS && status != LibUsb.ERROR_NOT_FOUND && status != LibUsb.ERROR_NOT_SUPPORTED){
             LibUsb.close(deviceHandle);
             LibUsb.exit(context);
-            throw new PrinterException(InternalResponseCode.UNABLE_TO_DETACH_KERNEL_DRIVER, HttpStatus.CONFLICT, "Unable to detach kernel driver: " + LibUsb.strError(status));
+            throw new InternalBaseException(InternalResponseCode.UNABLE_TO_DETACH_KERNEL_DRIVER, HttpStatus.CONFLICT, "Unable to detach kernel driver: " + LibUsb.strError(status));
         }
     }
 
@@ -208,7 +208,7 @@ public class ZplPrinterServiceImpl implements PrinterService {
         final DeviceHandle deviceHandle = getDeviceHandleBySerial(request, context);
         if (deviceHandle == null){
             LibUsb.exit(context);
-            throw new PrinterException(InternalResponseCode.USB_DEVICE_NOT_FOUND, HttpStatus.BAD_REQUEST, "USB device not found: vendorId="+request.vendorId()+", productId="+request.productId());
+            throw new InternalBaseException(InternalResponseCode.USB_DEVICE_NOT_FOUND, HttpStatus.BAD_REQUEST, "USB device not found: vendorId="+request.vendorId()+", productId="+request.productId());
         }
         return deviceHandle;
     }
@@ -248,7 +248,7 @@ public class ZplPrinterServiceImpl implements PrinterService {
     private void initContext(Context context) {
         final int status = LibUsb.init(context);
         if (status != LibUsb.SUCCESS){
-            throw new PrinterException(InternalResponseCode.INIT_CONTEXT_FAILED, HttpStatus.CONFLICT, "Unable to initialize libusb: " + LibUsb.strError(status));
+            throw new InternalBaseException(InternalResponseCode.INIT_CONTEXT_FAILED, HttpStatus.CONFLICT, "Unable to initialize libusb: " + LibUsb.strError(status));
         }
     }
 
