@@ -3,6 +3,7 @@ package id.segari.printer.segariprintermiddleware.common.dto.websocket;
 import java.time.LocalDateTime;
 
 public record WebSocketStatus(
+        long lastConnectedWarehouseId,
         boolean isConnected,
         LocalDateTime lastMessageTime,
         LocalDateTime lastConnectTime,

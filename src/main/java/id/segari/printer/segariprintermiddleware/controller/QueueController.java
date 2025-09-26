@@ -22,43 +22,33 @@ public class QueueController {
 
     @GetMapping("/status")
     public SuccessResponse<QueueOverallStatusResponse> getOverallStatus() {
-        Map<Integer, Integer> queueSizes = printQueueService.getAllQueueSizes();
-        int totalQueues = printQueueService.getTotalQueues();
-        int totalJobs = queueSizes.values().stream().mapToInt(Integer::intValue).sum();
-
-        QueueOverallStatusResponse status = new QueueOverallStatusResponse(totalQueues, totalJobs, queueSizes);
-
-        return new SuccessResponse<>(InternalResponseCode.SUCCESS, status);
+        final Map<Integer, Integer> queueSizes = printQueueService.getAllQueueSizes();
+        final int totalQueues = printQueueService.getTotalQueues();
+        final int totalJobs = queueSizes.values().stream().mapToInt(Integer::intValue).sum();
+        return new SuccessResponse<>(InternalResponseCode.SUCCESS, new QueueOverallStatusResponse(totalQueues, totalJobs, queueSizes));
     }
 
     @GetMapping("/status/{id}")
     public SuccessResponse<QueueStatusResponse> getQueueStatus(@PathVariable int id) {
         int queueSize = printQueueService.getQueueSize(id);
-
-        QueueStatusResponse status = new QueueStatusResponse(id, queueSize, queueSize >= 0);
-
-        return new SuccessResponse<>(InternalResponseCode.SUCCESS, status);
+        return new SuccessResponse<>(InternalResponseCode.SUCCESS,  new QueueStatusResponse(id, queueSize, queueSize >= 0));
     }
 
     @GetMapping("/list/{id}")
     public SuccessResponse<List<PrinterPrintRequest>> getPendingJobs(@PathVariable int id) {
-        List<PrinterPrintRequest> pendingJobs = printQueueService.getPendingJobs(id);
-        return new SuccessResponse<>(InternalResponseCode.SUCCESS, pendingJobs);
+        return new SuccessResponse<>(InternalResponseCode.SUCCESS, printQueueService.getPendingJobs(id));
     }
 
     @DeleteMapping("/clear/{id}")
     public SuccessResponse<String> clearQueue(@PathVariable int id) {
-        boolean cleared = printQueueService.clearQueue(id);
-        String message = cleared ?
+        return new SuccessResponse<>(InternalResponseCode.SUCCESS, printQueueService.clearQueue(id) ?
                 "Queue cleared for printer " + id :
-                "No queue found for printer " + id;
-
-        return new SuccessResponse<>(InternalResponseCode.SUCCESS, message);
+                "No queue found for printer " + id);
     }
 
     @DeleteMapping("/clear")
-    public SuccessResponse<String> clearAllQueues() {
+    public SuccessResponse<Boolean> clearAllQueues() {
         printQueueService.clearAllQueues();
-        return new SuccessResponse<>(InternalResponseCode.SUCCESS, "All queues cleared");
+        return new SuccessResponse<>(InternalResponseCode.SUCCESS, true);
     }
 }

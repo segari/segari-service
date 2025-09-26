@@ -74,6 +74,7 @@ public class WebSocketServiceImpl implements WebSocketService {
     @Override
     public WebSocketStatus getStatus(long warehouseId) {
         return new WebSocketStatus(
+                connectedWarehouseId.get(),
                 isConnected(warehouseId),
                 lastMessageTime,
                 lastConnectTime,
