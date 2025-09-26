@@ -40,10 +40,8 @@ public class QueueController {
     }
 
     @DeleteMapping("/clear/{id}")
-    public SuccessResponse<String> clearQueue(@PathVariable int id) {
-        return new SuccessResponse<>(InternalResponseCode.SUCCESS, printQueueService.clearQueue(id) ?
-                "Queue cleared for printer " + id :
-                "No queue found for printer " + id);
+    public SuccessResponse<Boolean> clearQueue(@PathVariable int id) {
+        return new SuccessResponse<>(InternalResponseCode.SUCCESS, printQueueService.clearQueue(id));
     }
 
     @DeleteMapping("/clear")

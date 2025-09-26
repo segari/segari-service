@@ -17,39 +17,28 @@ public class UpdateController {
 
     @GetMapping("/check")
     public SuccessResponse<VersionInfo> checkForUpdates() {
-        VersionInfo versionInfo = updateService.checkForUpdates();
-        return new SuccessResponse<>(InternalResponseCode.SUCCESS, versionInfo);
+        return new SuccessResponse<>(InternalResponseCode.SUCCESS, updateService.checkForUpdates());
     }
 
     @PostMapping("/download")
-    public SuccessResponse<String> downloadUpdate(@RequestParam String downloadUrl) {
-        try {
-            updateService.downloadUpdate(downloadUrl);
-            return new SuccessResponse<>(InternalResponseCode.SUCCESS, "Update downloaded successfully");
-        } catch (Exception e) {
-            return new SuccessResponse<>(InternalResponseCode.SUCCESS, "Download failed: " + e.getMessage());
-        }
+    public SuccessResponse<Boolean> downloadUpdate(@RequestParam String downloadUrl) {
+        updateService.downloadUpdate(downloadUrl);
+        return new SuccessResponse<>(InternalResponseCode.SUCCESS, true);
     }
 
     @GetMapping("/status")
     public SuccessResponse<Boolean> getUpdateStatus() {
-        boolean isDownloaded = updateService.isUpdateDownloaded();
-        return new SuccessResponse<>(InternalResponseCode.SUCCESS, isDownloaded);
+        return new SuccessResponse<>(InternalResponseCode.SUCCESS, updateService.isUpdateDownloaded());
     }
 
     @PostMapping("/apply")
-    public SuccessResponse<String> applyUpdate() {
-        try {
-            updateService.applyUpdate();
-            return new SuccessResponse<>(InternalResponseCode.SUCCESS, "Update is being applied. Application will restart.");
-        } catch (Exception e) {
-            return new SuccessResponse<>(InternalResponseCode.SUCCESS, "Update failed: " + e.getMessage());
-        }
+    public SuccessResponse<Boolean> applyUpdate() {
+        updateService.applyUpdate();
+        return new SuccessResponse<>(InternalResponseCode.SUCCESS, true);
     }
 
     @GetMapping("/version")
     public SuccessResponse<String> getCurrentVersion() {
-        String version = updateService.getCurrentVersion();
-        return new SuccessResponse<>(InternalResponseCode.SUCCESS, version);
+        return new SuccessResponse<>(InternalResponseCode.SUCCESS, updateService.getCurrentVersion());
     }
 }
