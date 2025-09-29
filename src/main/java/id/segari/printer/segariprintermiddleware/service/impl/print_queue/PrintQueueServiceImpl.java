@@ -29,15 +29,9 @@ public class PrintQueueServiceImpl implements PrintQueueService {
     private final Map<Integer, LinkedBlockingQueue<PrinterPrintRequest>> printerQueues = new ConcurrentHashMap<>();
     private final Map<Integer, Thread> consumerThreads = new ConcurrentHashMap<>();
     private final PrinterService printerService;
-    private ExecutorService executorService;
 
     public PrintQueueServiceImpl(PrinterService printerService) {
         this.printerService = printerService;
-    }
-
-    @PostConstruct
-    public void initialize() {
-        this.executorService = Executors.newVirtualThreadPerTaskExecutor();
     }
 
     @Override
@@ -120,6 +114,5 @@ public class PrintQueueServiceImpl implements PrintQueueService {
         for (Thread thread : consumerThreads.values()) thread.interrupt();
         consumerThreads.clear();
         printerQueues.clear();
-        if (executorService != null) executorService.shutdown();
     }
 }
