@@ -5,20 +5,15 @@ import id.segari.printer.segariprintermiddleware.common.dto.printer.print.Printe
 import id.segari.printer.segariprintermiddleware.exception.InternalBaseException;
 import id.segari.printer.segariprintermiddleware.service.PrintQueueService;
 import id.segari.printer.segariprintermiddleware.service.PrinterService;
-import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.util.CollectionUtils;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 @Service

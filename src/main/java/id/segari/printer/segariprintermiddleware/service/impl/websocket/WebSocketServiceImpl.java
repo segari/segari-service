@@ -1,17 +1,17 @@
 package id.segari.printer.segariprintermiddleware.service.impl.websocket;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import id.segari.printer.segariprintermiddleware.common.InternalResponseCode;
 import id.segari.printer.segariprintermiddleware.common.dto.websocket.WebSocketStatus;
 import id.segari.printer.segariprintermiddleware.exception.InternalBaseException;
 import id.segari.printer.segariprintermiddleware.service.PrintQueueService;
 import id.segari.printer.segariprintermiddleware.service.WebSocketService;
-import id.segari.printer.segariprintermiddleware.service.impl.UpdateServiceImpl;
 import jakarta.annotation.PreDestroy;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
-import org.springframework.messaging.simp.stomp.*;
+import org.springframework.messaging.simp.stomp.StompFrameHandler;
+import org.springframework.messaging.simp.stomp.StompSession;
+import org.springframework.messaging.simp.stomp.StompSessionHandler;
 import org.springframework.stereotype.Service;
 import org.springframework.web.socket.messaging.WebSocketStompClient;
 
@@ -33,6 +33,7 @@ public class WebSocketServiceImpl implements WebSocketService {
     private final PrintQueueService printQueueService;
     private final WebSocketStompClient stompClient;
     private final ScheduledExecutorService reconnectExecutor;
+    private final ObjectMapper objectMapper;
 
     @Value("${websocket.server.url}")
     private String serverUrl;
@@ -44,10 +45,11 @@ public class WebSocketServiceImpl implements WebSocketService {
     private StompSession stompSession;
 
     public WebSocketServiceImpl(PrintQueueService printQueueService, WebSocketStompClient stompClient,
-                                ScheduledExecutorService webSocketScheduledExecutor) {
+                                ScheduledExecutorService webSocketScheduledExecutor, ObjectMapper objectMapper) {
         this.printQueueService = printQueueService;
         this.stompClient = stompClient;
         this.reconnectExecutor = webSocketScheduledExecutor;
+        this.objectMapper = objectMapper;
     }
 
     @Override
@@ -100,7 +102,7 @@ public class WebSocketServiceImpl implements WebSocketService {
         final CompletableFuture<Boolean> result = new CompletableFuture<>();
         try {
             isConnecting.set(true);
-            final StompFrameHandler frameHandler = new PrintStompFrameHandler(printQueueService);
+            final StompFrameHandler frameHandler = new PrintStompFrameHandler(printQueueService, objectMapper);
             final StompSessionHandler sessionHandler = getSessionHandler(warehouseId, frameHandler, result);
 
             stompClient.connectAsync(serverUrl+"/ws", sessionHandler)

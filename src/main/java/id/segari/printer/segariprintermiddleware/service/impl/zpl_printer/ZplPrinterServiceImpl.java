@@ -10,6 +10,8 @@ import id.segari.printer.segariprintermiddleware.common.dto.printer.print.Printe
 import id.segari.printer.segariprintermiddleware.exception.InternalBaseException;
 import id.segari.printer.segariprintermiddleware.service.PrinterService;
 import jakarta.annotation.PreDestroy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
@@ -26,6 +28,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class ZplPrinterServiceImpl implements PrinterService {
+    private static final Logger log = LoggerFactory.getLogger(ZplPrinterServiceImpl.class);
     private static final Map<Integer, Printer> printerById = new ConcurrentHashMap<>();
 
     @Override

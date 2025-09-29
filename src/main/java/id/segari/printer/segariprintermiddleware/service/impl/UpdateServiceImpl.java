@@ -1,7 +1,7 @@
 package id.segari.printer.segariprintermiddleware.service.impl;
 
-import id.segari.printer.segariprintermiddleware.common.dto.update.VersionInfo;
 import id.segari.printer.segariprintermiddleware.common.dto.external.SegariResponse;
+import id.segari.printer.segariprintermiddleware.common.dto.update.VersionInfo;
 import id.segari.printer.segariprintermiddleware.service.UpdateService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,7 +11,8 @@ import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;

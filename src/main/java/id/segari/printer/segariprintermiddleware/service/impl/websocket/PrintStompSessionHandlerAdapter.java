@@ -42,7 +42,8 @@ public class PrintStompSessionHandlerAdapter extends StompSessionHandlerAdapter 
         lastConnectTime = LocalDateTime.now();
         isConnecting.set(false);
         try {
-            session.subscribe(topicDestination + "/" + warehouseId, printStompFrameHandler);
+            final String topic = topicDestination + "/" + warehouseId;
+            session.subscribe(topic, printStompFrameHandler);
             connectedWarehouseId.addAndGet(warehouseId);
             result.complete(true);
         } catch (Exception e) {
