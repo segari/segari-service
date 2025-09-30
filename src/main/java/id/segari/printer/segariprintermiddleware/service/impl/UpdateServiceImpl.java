@@ -1,5 +1,6 @@
 package id.segari.printer.segariprintermiddleware.service.impl;
 
+import id.segari.printer.segariprintermiddleware.common.dto.external.AppVersion;
 import id.segari.printer.segariprintermiddleware.common.dto.external.SegariResponse;
 import id.segari.printer.segariprintermiddleware.common.dto.update.VersionInfo;
 import id.segari.printer.segariprintermiddleware.service.UpdateService;
@@ -59,17 +60,17 @@ public class UpdateServiceImpl implements UpdateService {
         try {
             logger.debug("Checking for updates from: {}", updateServerUrl);
 
-            SegariResponse<String> response = restTemplate.exchange(
-                updateServerUrl,
+            SegariResponse<AppVersion> response = restTemplate.exchange(
+                updateServerUrl + "/v1/warehouse-printers/printer-middleware/versions",
                 HttpMethod.GET,
                 null,
-                new ParameterizedTypeReference<SegariResponse<String>>() {}
+                new ParameterizedTypeReference<SegariResponse<AppVersion>>() {}
             ).getBody();
 
             if (response != null && response.data() != null) {
                 logger.info("Update check completed. Response: {}", response.message());
                 // Parse response data to create VersionInfo - assuming response.data() contains version info
-                return new VersionInfo(currentVersion, response.data(), true, "", response.message());
+                return new VersionInfo(currentVersion, response.data().version(), isUpdateAvailable(currentVersion, response.data().version()), response.data().url(), response.message());
             }
 
         } catch (Exception e) {
@@ -77,6 +78,32 @@ public class UpdateServiceImpl implements UpdateService {
         }
 
         return new VersionInfo(currentVersion, currentVersion, false, "", "Update check failed");
+    }
+
+    private boolean isUpdateAvailable(String currentVersion, String latestVersion) {
+        try {
+            String[] current = currentVersion.split("\\.");
+            String[] latest = latestVersion.split("\\.");
+
+            int length = Math.max(current.length, latest.length);
+
+            for (int i = 0; i < length; i++) {
+                int currentNum = i < current.length ? Integer.parseInt(current[i]) : 0;
+                int latestNum = i < latest.length ? Integer.parseInt(latest[i]) : 0;
+
+                if (latestNum > currentNum) {
+                    return true;
+                } else if (latestNum < currentNum) {
+                    return false;
+                }
+            }
+
+            return false;
+
+        } catch (Exception e) {
+            logger.warn("Error comparing versions: {} vs {}", currentVersion, latestVersion);
+            return false;
+        }
     }
 
     @Override
