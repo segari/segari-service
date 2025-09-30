@@ -1,6 +1,8 @@
 package id.segari.printer.segariprintermiddleware.service.impl.url;
 
 import id.segari.printer.segariprintermiddleware.service.UrlService;
+import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.net.InetAddress;
@@ -10,13 +12,16 @@ import java.util.Enumeration;
 @Service
 public class UrlServiceImpl implements UrlService {
 
+    @Value("${server.port}")
+    private String port;
+
     @Override
     public String getPrintDomain() {
         try {
             String localIp = getLocalIpAddress();
-            return String.format("http://%s:54124/v1/printer/print", localIp);
+            return String.format("http://%s:%s", localIp, port);
         } catch (Exception e) {
-            return "http://localhost:54124/v1/printer/print";
+            return "http://localhost:54124";
         }
     }
 
