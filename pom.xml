@@ -27,15 +27,11 @@
 		<url/>
 	</scm>
 	<properties>
-		<java.version>24</java.version>
-		<app.version>1.0.0</app.version>
+		<java.version>25</java.version>
+		<app.version>1.0.2</app.version>
 		<app.name>Segari Printer Middleware</app.name>
 		<app.vendor>Segari</app.vendor>
 		<app.description>Printer middleware service for handling print operations</app.description>
-
-		<!-- Environment variable defaults -->
-		<segari.backend.endpoint>${env.SEGARI_BACKEND_ENDPOINT}</segari.backend.endpoint>
-		<websocket.server.url>${env.WEBSOCKET_SERVER_URL}</websocket.server.url>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -94,8 +90,8 @@
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>3.13.0</version>
 				<configuration>
-					<source>24</source>
-					<target>24</target>
+					<source>25</source>
+					<target>25</target>
 					<compilerArgs>
 						<arg>-parameters</arg>
 					</compilerArgs>
@@ -140,7 +136,7 @@
 										<!-- JVM options -->
 										<javaOptions>
 											<option>--enable-native-access=ALL-UNNAMED</option>
-											<option>-Dspring.profiles.active=default</option>
+											<option>-Dspring.profiles.active=theta</option>
 											<option>-Xmx512m</option>
 										</javaOptions>
 
