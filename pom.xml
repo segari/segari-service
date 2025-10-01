@@ -111,39 +111,6 @@
 				<id>windows-exe</id>
 				<build>
 					<plugins>
-						<!-- Create runtime image with jlink -->
-						<plugin>
-							<groupId>org.apache.maven.plugins</groupId>
-							<artifactId>maven-jlink-plugin</artifactId>
-							<version>3.1.0</version>
-							<executions>
-								<execution>
-									<phase>package</phase>
-									<goals>
-										<goal>jlink</goal>
-									</goals>
-									<configuration>
-										<runtimeImage>${project.build.directory}/jre</runtimeImage>
-										<modules>
-											<module>java.base</module>
-											<module>java.desktop</module>
-											<module>java.logging</module>
-											<module>java.management</module>
-											<module>java.naming</module>
-											<module>java.net.http</module>
-											<module>java.security.sasl</module>
-											<module>java.sql</module>
-											<module>jdk.crypto.ec</module>
-											<module>jdk.unsupported</module>
-										</modules>
-										<launcher>app=${project.groupId}/${project.artifactId}</launcher>
-										<noHeaderFiles>true</noHeaderFiles>
-										<noManPages>true</noManPages>
-									</configuration>
-								</execution>
-							</executions>
-						</plugin>
-
 						<!-- Package as Windows executable with jpackage -->
 						<plugin>
 							<groupId>org.panteleyev</groupId>
@@ -165,40 +132,25 @@
 										<!-- Input configuration -->
 										<input>${project.build.directory}</input>
 										<mainJar>${project.artifactId}-${project.version}.jar</mainJar>
-										<mainClass>${project.groupId}.${project.artifactId}.SegariPrinterMiddlewareApplication</mainClass>
 
 										<!-- Output configuration -->
 										<destination>${project.build.directory}/dist</destination>
 										<type>EXE</type>
 
-										<!-- Runtime configuration -->
-										<runtimeImage>${project.build.directory}/jre</runtimeImage>
-
 										<!-- JVM options -->
 										<javaOptions>
 											<option>--enable-native-access=ALL-UNNAMED</option>
-											<option>-Dspring.profiles.active=prod</option>
+											<option>-Dspring.profiles.active=default</option>
 											<option>-Xmx512m</option>
 										</javaOptions>
 
 										<!-- Windows specific -->
+										<winConsole>true</winConsole>
 										<winDirChooser>false</winDirChooser>
 										<winPerUserInstall>false</winPerUserInstall>
 										<winShortcut>true</winShortcut>
 										<winMenu>true</winMenu>
 										<winShortcutPrompt>true</winShortcutPrompt>
-
-										<!-- Environment variables -->
-										<addLauncherEnvironment>
-											<entry>
-												<key>SEGARI_BACKEND_ENDPOINT</key>
-												<value>${segari.backend.endpoint}</value>
-											</entry>
-											<entry>
-												<key>WEBSOCKET_SERVER_URL</key>
-												<value>${websocket.server.url}</value>
-											</entry>
-										</addLauncherEnvironment>
 									</configuration>
 								</execution>
 							</executions>
@@ -230,14 +182,13 @@
 
 										<input>${project.build.directory}</input>
 										<mainJar>${project.artifactId}-${project.version}.jar</mainJar>
-										<mainClass>${project.groupId}.${project.artifactId}.SegariPrinterMiddlewareApplication</mainClass>
 
 										<destination>${project.build.directory}/dist</destination>
 										<type>APP_IMAGE</type>
 
 										<javaOptions>
 											<option>--enable-native-access=ALL-UNNAMED</option>
-											<option>-Dspring.profiles.active=prod</option>
+											<option>-Dspring.profiles.active=default</option>
 											<option>-Xmx512m</option>
 										</javaOptions>
 									</configuration>

@@ -118,7 +118,7 @@ public class ZplPrinterServiceImpl implements PrinterService {
     private PrinterDescription getPrinterDescription(Device device, DeviceDescriptor descriptor) {
         final DeviceHandle deviceHandle = new DeviceHandle();
         final int status = LibUsb.open(device, deviceHandle);
-        if (status != LibUsb.SUCCESS) throw new RuntimeException();
+        if (status != LibUsb.SUCCESS) throw new RuntimeException("failed to open device handler");
         try {
             return new PrinterDescription(
                     getProductName(descriptor, deviceHandle),
