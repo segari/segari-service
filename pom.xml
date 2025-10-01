@@ -32,6 +32,10 @@
 		<app.name>Segari Printer Middleware</app.name>
 		<app.vendor>Segari</app.vendor>
 		<app.description>Printer middleware service for handling print operations</app.description>
+
+		<!-- Environment variable defaults -->
+		<segari.backend.endpoint>${env.SEGARI_BACKEND_ENDPOINT}</segari.backend.endpoint>
+		<websocket.server.url>${env.WEBSOCKET_SERVER_URL}</websocket.server.url>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -45,11 +49,6 @@
 			<scope>test</scope>
 		</dependency>
 		<dependency>
-			<groupId>com.zebra</groupId>
-			<artifactId>zsdk-api</artifactId>
-			<version>2.14.5198</version>
-		</dependency>
-		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-logging</artifactId>
 		</dependency>
@@ -60,6 +59,11 @@
 		<dependency>
 			<groupId>org.usb4java</groupId>
 			<artifactId>usb4java</artifactId>
+			<version>1.3.0</version>
+		</dependency>
+		<dependency>
+			<groupId>org.usb4java</groupId>
+			<artifactId>usb4java-javax</artifactId>
 			<version>1.3.0</version>
 		</dependency>
 		<dependency>
@@ -96,27 +100,6 @@
 						<arg>-parameters</arg>
 					</compilerArgs>
 				</configuration>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-install-plugin</artifactId>
-				<executions>
-					<execution>
-						<id>install-zebra-sdk</id>
-						<phase>clean</phase>
-						<configuration>
-							<file>${basedir}/libs/ZSDK_API.jar</file>
-							<groupId>com.zebra</groupId>
-							<artifactId>zsdk-api</artifactId>
-							<version>2.14.5198</version>
-							<packaging>jar</packaging>
-							<generatePom>true</generatePom>
-						</configuration>
-						<goals>
-							<goal>install-file</goal>
-						</goals>
-					</execution>
-				</executions>
 			</plugin>
 		</plugins>
 	</build>
@@ -203,6 +186,19 @@
 										<winPerUserInstall>false</winPerUserInstall>
 										<winShortcut>true</winShortcut>
 										<winMenu>true</winMenu>
+										<winShortcutPrompt>true</winShortcutPrompt>
+
+										<!-- Environment variables -->
+										<addLauncherEnvironment>
+											<entry>
+												<key>SEGARI_BACKEND_ENDPOINT</key>
+												<value>${segari.backend.endpoint}</value>
+											</entry>
+											<entry>
+												<key>WEBSOCKET_SERVER_URL</key>
+												<value>${websocket.server.url}</value>
+											</entry>
+										</addLauncherEnvironment>
 									</configuration>
 								</execution>
 							</executions>
