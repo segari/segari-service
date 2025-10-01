@@ -28,7 +28,7 @@
 	</scm>
 	<properties>
 		<java.version>25</java.version>
-		<app.version>1.0.2</app.version>
+		<app.version>1.0.5</app.version>
 		<app.name>Segari Printer Middleware</app.name>
 		<app.vendor>Segari</app.vendor>
 		<app.description>Printer middleware service for handling print operations</app.description>
@@ -141,7 +141,6 @@
 										</javaOptions>
 
 										<!-- Windows specific -->
-										<winConsole>true</winConsole>
 										<winDirChooser>false</winDirChooser>
 										<winPerUserInstall>false</winPerUserInstall>
 										<winShortcut>true</winShortcut>
@@ -187,6 +186,29 @@
 											<option>-Dspring.profiles.active=default</option>
 											<option>-Xmx512m</option>
 										</javaOptions>
+									</configuration>
+								</execution>
+							</executions>
+						</plugin>
+
+						<!-- Zip the portable build for distribution -->
+						<plugin>
+							<groupId>org.apache.maven.plugins</groupId>
+							<artifactId>maven-assembly-plugin</artifactId>
+							<version>3.7.1</version>
+							<executions>
+								<execution>
+									<id>create-portable-zip</id>
+									<phase>verify</phase>
+									<goals>
+										<goal>single</goal>
+									</goals>
+									<configuration>
+										<descriptors>
+											<descriptor>src/assembly/portable-zip.xml</descriptor>
+										</descriptors>
+										<finalName>${project.artifactId}-portable</finalName>
+										<appendAssemblyId>false</appendAssemblyId>
 									</configuration>
 								</execution>
 							</executions>

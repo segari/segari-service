@@ -19,6 +19,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.Comparator;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 @Service
 public class UpdateServiceImpl implements UpdateService {
@@ -29,6 +32,7 @@ public class UpdateServiceImpl implements UpdateService {
     @Value("${app.version:1.0.0}")
     private String currentVersion;
 
+
     @Value("${segari.backend.endpoint}")
     private String updateServerUrl;
 
@@ -37,14 +41,17 @@ public class UpdateServiceImpl implements UpdateService {
 
     private final Path updateDirectory;
     private final Path downloadedUpdatePath;
+    private final Path extractedUpdatePath;
 
     public UpdateServiceImpl(RestTemplate restTemplate) {
         this.restTemplate = restTemplate;
         this.updateDirectory = Paths.get(System.getProperty("user.home"), ".segari-printer", "updates");
-        this.downloadedUpdatePath = updateDirectory.resolve("segari-printer-middleware-new.exe");
+        this.downloadedUpdatePath = updateDirectory.resolve("update.zip");
+        this.extractedUpdatePath = updateDirectory.resolve("extracted");
 
         try {
             Files.createDirectories(updateDirectory);
+            Files.createDirectories(extractedUpdatePath);
         } catch (IOException e) {
             logger.error("Failed to create update directory: {}", e.getMessage());
         }
@@ -113,18 +120,28 @@ public class UpdateServiceImpl implements UpdateService {
         }
 
         logger.info("Starting download of update from: {}", downloadUrl);
+        logger.info("Download destination: {}", downloadedUpdatePath);
 
         try {
-            URL url = new URL(downloadUrl);
-
-            try (InputStream inputStream = url.openStream()) {
-                Files.copy(inputStream, downloadedUpdatePath, StandardCopyOption.REPLACE_EXISTING);
-                logger.info("Update downloaded successfully to: {}", downloadedUpdatePath);
+            // Ensure update directory exists
+            if (!Files.exists(updateDirectory)) {
+                logger.info("Creating update directory: {}", updateDirectory);
+                Files.createDirectories(updateDirectory);
             }
 
-        } catch (IOException e) {
-            logger.error("Failed to download update: {}", e.getMessage());
-            throw new RuntimeException("Update download failed: " + e.getMessage(), e);
+            URL url = new URL(downloadUrl);
+            logger.info("Opening connection to: {}", url);
+
+            try (InputStream inputStream = url.openStream()) {
+                logger.info("Downloading file...");
+                Files.copy(inputStream, downloadedUpdatePath, StandardCopyOption.REPLACE_EXISTING);
+                logger.info("Update downloaded successfully to: {}", downloadedUpdatePath);
+                logger.info("Downloaded file size: {} bytes", Files.size(downloadedUpdatePath));
+            }
+
+        } catch (Exception e) {
+            logger.error("Failed to download update from URL: {}", downloadUrl, e);
+            throw new RuntimeException("Update download failed: " + e.getClass().getSimpleName() + " - " + e.getMessage(), e);
         }
     }
 
@@ -144,24 +161,54 @@ public class UpdateServiceImpl implements UpdateService {
         logger.info("Preparing to apply update...");
 
         try {
+            // Extract the ZIP file
+            logger.info("Extracting update ZIP...");
+            extractZip(downloadedUpdatePath, extractedUpdatePath);
+
+            // Get the installation directory
             String currentExecutablePath = getCurrentExecutablePath();
-            String backupPath = currentExecutablePath + ".backup";
+            Path installDir = Paths.get(currentExecutablePath).getParent();
+            logger.info("Installation directory: {}", installDir);
 
             // Create update script
-            String updateScript = createUpdateScript(currentExecutablePath, downloadedUpdatePath.toString(), backupPath);
+            String updateScript = createUpdateScript(
+                installDir.toString(),
+                extractedUpdatePath.toString()
+            );
             Path scriptPath = updateDirectory.resolve("update.bat");
             Files.write(scriptPath, updateScript.getBytes());
 
             logger.info("Update script created at: {}", scriptPath);
             logger.info("Application will restart to apply update...");
 
-            // Execute update script and exit current application
-            ProcessBuilder pb = new ProcessBuilder("cmd", "/c", scriptPath.toString());
-            pb.start();
+            // Start the update process in a separate thread after a delay
+            // This allows the HTTP response to be sent before shutdown
+            new Thread(() -> {
+                try {
+                    // Wait for the response to be sent
+                    Thread.sleep(1000);
 
-            // Give the script time to start, then exit
-            Thread.sleep(2000);
-            System.exit(0);
+                    logger.info("Starting update script...");
+
+                    // Execute update script with admin privileges
+                    String elevateCommand = String.format(
+                        "powershell -Command \"Start-Process cmd -ArgumentList '/c \"\"%s\"\"' -Verb RunAs\"",
+                        scriptPath.toString()
+                    );
+                    ProcessBuilder pb = new ProcessBuilder("cmd", "/c", elevateCommand);
+                    pb.start();
+
+                    // Give the script time to start
+                    Thread.sleep(1000);
+
+                    logger.info("Initiating graceful shutdown...");
+                    // Graceful shutdown - allows cleanup of resources
+                    System.exit(0);
+
+                } catch (Exception e) {
+                    logger.error("Failed to start update script: {}", e.getMessage());
+                }
+            }, "update-trigger").start();
 
         } catch (Exception e) {
             logger.error("Failed to apply update: {}", e.getMessage());
@@ -175,35 +222,124 @@ public class UpdateServiceImpl implements UpdateService {
     }
 
     private String getCurrentExecutablePath() {
-        // Try to get the current executable path
-        String jarPath = System.getProperty("java.class.path");
+        // Try to get the actual executable path from the process
+        try {
+            String command = ProcessHandle.current().info().command().orElse("");
+            if (command.endsWith(".exe")) {
+                logger.info("Detected executable path: {}", command);
+                return command;
+            }
+        } catch (Exception e) {
+            logger.warn("Failed to get process command: {}", e.getMessage());
+        }
 
-        if (jarPath.contains(".jar")) {
+        // Try to get JAR path from classpath
+        String jarPath = System.getProperty("java.class.path");
+        if (jarPath.contains(".jar") && !jarPath.contains(";")) {
+            logger.info("Detected JAR path: {}", jarPath);
             return jarPath;
         }
 
-        // Fallback for when running as executable
-        return System.getProperty("user.dir") + "\\segari-printer-middleware.exe";
+        // Last resort fallback
+        String fallbackPath = System.getProperty("user.dir") + "\\segari-printer-middleware.exe";
+        logger.warn("Using fallback path: {}", fallbackPath);
+        return fallbackPath;
     }
 
-    private String createUpdateScript(String currentExePath, String newExePath, String backupPath) {
+    private void extractZip(Path zipFile, Path targetDirectory) throws IOException {
+        logger.info("Extracting ZIP file: {} to {}", zipFile, targetDirectory);
+
+        // Clean target directory if it exists
+        if (Files.exists(targetDirectory)) {
+            logger.info("Cleaning existing extracted directory...");
+            Files.walk(targetDirectory)
+                .sorted(Comparator.reverseOrder())
+                .forEach(path -> {
+                    try {
+                        Files.delete(path);
+                    } catch (IOException e) {
+                        logger.warn("Failed to delete: {}", path);
+                    }
+                });
+        }
+
+        Files.createDirectories(targetDirectory);
+
+        try (ZipInputStream zis = new ZipInputStream(Files.newInputStream(zipFile))) {
+            ZipEntry entry;
+            while ((entry = zis.getNextEntry()) != null) {
+                Path targetPath = targetDirectory.resolve(entry.getName());
+
+                if (entry.isDirectory()) {
+                    Files.createDirectories(targetPath);
+                    logger.debug("Created directory: {}", targetPath);
+                } else {
+                    Files.createDirectories(targetPath.getParent());
+                    Files.copy(zis, targetPath, StandardCopyOption.REPLACE_EXISTING);
+                    logger.debug("Extracted file: {}", targetPath);
+                }
+                zis.closeEntry();
+            }
+        }
+
+        logger.info("ZIP extraction completed successfully");
+    }
+
+    private String createUpdateScript(String installDir, String extractedDir) {
+        // Get the current username to run the app as the original user (not admin)
+        String username = System.getProperty("user.name");
+        String exePath = installDir + "\\segari-printer-middleware.exe";
+
         return String.format(
             "@echo off\n" +
-            "echo Starting update process...\n" +
-            "timeout /t 3 /nobreak >nul\n" +
-            "echo Creating backup of current version...\n" +
-            "copy \"%s\" \"%s\" >nul\n" +
-            "echo Replacing with new version...\n" +
-            "copy \"%s\" \"%s\" >nul\n" +
-            "echo Cleaning up...\n" +
-            "del \"%s\" >nul\n" +
-            "echo Update completed. Starting application...\n" +
-            "start \"\" \"%s\"\n" +
-            "del \"%%~f0\" >nul\n",
-            currentExePath, backupPath,
-            newExePath, currentExePath,
-            newExePath,
-            currentExePath
+            "echo ========================================\n" +
+            "echo Segari Printer Middleware Update\n" +
+            "echo ========================================\n" +
+            "echo.\n" +
+            "echo Installation directory: %s\n" +
+            "echo Update source: %s\n" +
+            "echo User: %s\n" +
+            "echo.\n" +
+            "echo Waiting for application to close...\n" +
+            "timeout /t 5 /nobreak\n" +
+            "echo.\n" +
+            "echo [1/3] Deleting old installation files...\n" +
+            "cd /d \"%s\"\n" +
+            "for /d %%%%d in (*) do (\n" +
+            "    echo Deleting directory: %%%%d\n" +
+            "    rd /s /q \"%%%%d\" 2>nul\n" +
+            ")\n" +
+            "for %%%%f in (*) do (\n" +
+            "    if not \"%%%%f\"==\"update.bat\" (\n" +
+            "        echo Deleting file: %%%%f\n" +
+            "        del /f /q \"%%%%f\" 2>nul\n" +
+            "    )\n" +
+            ")\n" +
+            "echo Old files deleted.\n" +
+            "echo.\n" +
+            "echo [2/3] Copying new files...\n" +
+            "xcopy \"%s\\*\" \"%s\\\" /E /I /H /Y\n" +
+            "if errorlevel 1 (\n" +
+            "    echo ERROR: Failed to copy new files!\n" +
+            "    pause\n" +
+            "    exit /b 1\n" +
+            ")\n" +
+            "echo New files copied successfully.\n" +
+            "echo.\n" +
+            "echo [3/3] Starting application...\n" +
+            "echo Starting as user: %s\n" +
+            "rem Drop admin privileges and start as normal user\n" +
+            "explorer.exe \"%s\"\n" +
+            "echo.\n" +
+            "echo ========================================\n" +
+            "echo Update completed successfully!\n" +
+            "echo ========================================\n" +
+            "echo.\n" +
+            "timeout /t 3 /nobreak\n",
+            installDir, extractedDir, username,
+            installDir,
+            extractedDir, installDir,
+            username, exePath
         );
     }
 }
