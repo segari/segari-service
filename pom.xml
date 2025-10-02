@@ -28,7 +28,7 @@
 	</scm>
 	<properties>
 		<java.version>25</java.version>
-		<app.version>1.0.8</app.version>
+		<app.version>1.0.9</app.version>
 		<app.name>Segari Printer Middleware</app.name>
 		<app.vendor>Segari</app.vendor>
 		<app.description>Printer middleware service for handling print operations</app.description>
@@ -136,6 +136,8 @@
 										<!-- JVM options -->
 										<javaOptions>
 											<option>--enable-native-access=ALL-UNNAMED</option>
+                                            <!--suppress UnresolvedMavenProperty -->
+                                            <option>-Dspring.profiles.active=${spring.profiles.active}</option>
 											<option>-Xmx512m</option>
 										</javaOptions>
 
@@ -182,6 +184,8 @@
 
 										<javaOptions>
 											<option>--enable-native-access=ALL-UNNAMED</option>
+                                            <!--suppress UnresolvedMavenProperty -->
+                                            <option>-Dspring.profiles.active=${spring.profiles.active}</option>
 											<option>-Xmx512m</option>
 										</javaOptions>
 									</configuration>
