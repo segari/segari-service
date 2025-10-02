@@ -256,6 +256,8 @@ public class UpdateServiceImpl implements UpdateService {
         // Get the current username to run the app as the original user (not admin)
         String username = System.getProperty("user.name");
         String exePath = installDir + "\\segari-printer-middleware.exe";
+        String updateZipPath = updateDirectory.resolve("update.zip").toString();
+        String updateBatPath = updateDirectory.resolve("update.bat").toString();
 
         return String.format(
             "@echo off\n" +
@@ -270,7 +272,7 @@ public class UpdateServiceImpl implements UpdateService {
             "echo Waiting for application to close...\n" +
             "timeout /t 5 /nobreak\n" +
             "echo.\n" +
-            "echo [1/3] Deleting old installation files...\n" +
+            "echo [1/4] Deleting old installation files...\n" +
             "cd /d \"%s\"\n" +
             "for /d %%%%d in (*) do (\n" +
             "    echo Deleting directory: %%%%d\n" +
@@ -284,7 +286,7 @@ public class UpdateServiceImpl implements UpdateService {
             ")\n" +
             "echo Old files deleted.\n" +
             "echo.\n" +
-            "echo [2/3] Copying new files...\n" +
+            "echo [2/4] Copying new files...\n" +
             "xcopy \"%s\\*\" \"%s\\\" /E /I /H /Y\n" +
             "if errorlevel 1 (\n" +
             "    echo ERROR: Failed to copy new files!\n" +
@@ -293,7 +295,14 @@ public class UpdateServiceImpl implements UpdateService {
             ")\n" +
             "echo New files copied successfully.\n" +
             "echo.\n" +
-            "echo [3/3] Starting application...\n" +
+            "echo [3/4] Cleaning up update files...\n" +
+            "echo Deleting extracted directory: %s\n" +
+            "rd /s /q \"%s\" 2>nul\n" +
+            "echo Deleting update.zip: %s\n" +
+            "del /f /q \"%s\" 2>nul\n" +
+            "echo Update files cleaned up.\n" +
+            "echo.\n" +
+            "echo [4/4] Starting application...\n" +
             "echo Starting as user: %s\n" +
             "rem Drop admin privileges and start as normal user\n" +
             "explorer.exe \"%s\"\n" +
@@ -302,11 +311,16 @@ public class UpdateServiceImpl implements UpdateService {
             "echo Update completed successfully!\n" +
             "echo ========================================\n" +
             "echo.\n" +
-            "timeout /t 3 /nobreak\n",
+            "echo Cleaning up update script...\n" +
+            "timeout /t 2 /nobreak\n" +
+            "del /f /q \"%s\" 2>nul\n",
             installDir, extractedDir, username,
             installDir,
             extractedDir, installDir,
-            username, exePath
+            extractedDir, extractedDir,
+            updateZipPath, updateZipPath,
+            username, exePath,
+            updateBatPath
         );
     }
 }
