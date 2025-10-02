@@ -28,7 +28,7 @@
 	</scm>
 	<properties>
 		<java.version>25</java.version>
-		<app.version>1.0.6</app.version>
+		<app.version>1.0.7</app.version>
 		<app.name>Segari Printer Middleware</app.name>
 		<app.vendor>Segari</app.vendor>
 		<app.description>Printer middleware service for handling print operations</app.description>
