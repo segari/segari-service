@@ -5,6 +5,7 @@ import id.segari.service.service.IdentifierService;
 import org.springframework.stereotype.Service;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 
 @Service
@@ -13,13 +14,8 @@ public class IdentifierServiceImpl implements IdentifierService {
     @Override
     public IdentifierResponse get() {
         try {
-            ProcessBuilder processBuilder = new ProcessBuilder(
-                "reg", "query",
-                "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Cryptography",
-                "/v", "MachineGuid"
-            );
-            Process process = processBuilder.start();
-
+            if (!isWindows()) return new IdentifierResponse(null);
+            final Process process = getProcess();
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
@@ -32,15 +28,24 @@ public class IdentifierServiceImpl implements IdentifierService {
                     }
                 }
             }
-
-            int exitCode = process.waitFor();
-            if (exitCode != 0) {
-                return new IdentifierResponse(null);
-            }
+            process.waitFor();
+            return new IdentifierResponse(null);
         } catch (Exception e) {
             return new IdentifierResponse(null);
         }
+    }
 
-        return new IdentifierResponse(null);
+    private boolean isWindows() {
+        String os = System.getProperty("os.name").toLowerCase();
+        return os.contains("win");
+    }
+
+    private Process getProcess() throws IOException {
+        final ProcessBuilder processBuilder = new ProcessBuilder(
+            "reg", "query",
+            "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Cryptography",
+            "/v", "MachineGuid"
+        );
+        return processBuilder.start();
     }
 }
