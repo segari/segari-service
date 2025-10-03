@@ -1,10 +1,10 @@
-package id.segari.printer.segariprintermiddleware;
+package id.segari.service;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class SegariPrinterMiddlewareApplicationTests {
+class SegariServiceApplicationTests {
 
 	@Test
 	void contextLoads() {

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a Spring Boot 3.5.6 printer middleware service built with Java. It's configured to use Spring Security and Spring Web, with virtual threads enabled for improved performance.
+This is a Spring Boot 3.5.6 service built with Java. It's configured to use Spring Security and Spring Web, with virtual threads enabled for improved performance.
 
 ## Development Commands
 
@@ -23,7 +23,7 @@ This is a Spring Boot 3.5.6 printer middleware service built with Java. It's con
 ./mvnw test
 
 # Run a specific test class
-./mvnw test -Dtest=SegariPrinterMiddlewareApplicationTests
+./mvnw test -Dtest=SegariServiceApplicationTests
 
 # Skip tests during build
 ./mvnw clean package -DskipTests
@@ -42,8 +42,8 @@ This is a Spring Boot 3.5.6 printer middleware service built with Java. It's con
 
 The application follows standard Spring Boot conventions:
 
-- **Main Application**: `id.segari.printer.segariprintermiddleware.SegariPrinterMiddlewareApplication` - Entry point with `@SpringBootApplication`
-- **Package Structure**: `id.segari.printer.segariprintermiddleware` base package with subdirectories:
+- **Main Application**: `id.segari.service.SegariServiceApplication` - Entry point with `@SpringBootApplication`
+- **Package Structure**: `id.segari.service` base package with subdirectories:
   - `controller/` - REST endpoints (currently empty, to be implemented)
   - `service/` - Business logic layer (currently empty, to be implemented)
 - **Configuration**: Uses `application.properties` with virtual threads enabled
@@ -51,9 +51,9 @@ The application follows standard Spring Boot conventions:
 
 ## Key Technologies
 
-- **Java Version**: 24 (as specified in pom.xml, though currently running on Java 11)
+- **Java Version**: 24 (OpenJDK 24.0.2-tem via SDKMAN as specified in .sdkmanrc)
 - **Spring Boot**: 3.5.6 with parent POM inheritance
-- **Dependencies**: Spring Web, Spring Security, Spring Boot Test, Spring Security Test
+- **Dependencies**: Spring Web, Spring Security, Spring Boot Test, Spring Security Test, Lombok, usb4java
 - **Build Tool**: Maven with wrapper (mvnw)
 
 ## Testing
