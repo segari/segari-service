@@ -216,8 +216,7 @@ public class UpdateServiceImpl implements UpdateService {
         }
 
         // Last resort fallback
-        String fallbackPath = System.getProperty("user.dir") + "\\segari-printer-middleware.exe";
-        return fallbackPath;
+        return System.getProperty("user.dir") + "\\segari-service.exe";
     }
 
     private void extractZip(Path zipFile, Path targetDirectory) throws IOException {
@@ -255,7 +254,7 @@ public class UpdateServiceImpl implements UpdateService {
     private String createUpdateScript(String installDir, String extractedDir) {
         // Get the current username to run the app as the original user (not admin)
         String username = System.getProperty("user.name");
-        String exePath = installDir + "\\segari-printer-middleware.exe";
+        String exePath = installDir + "\\segari-service.exe";
         String updateZipPath = updateDirectory.resolve("update.zip").toString();
         String updateBatPath = updateDirectory.resolve("update.bat").toString();
 
