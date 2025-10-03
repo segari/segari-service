@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a Spring Boot 3.5.6 printer middleware service built with Java. It's configured to use Spring Security and Spring Web, with virtual threads enabled for improved performance.
+This is a Spring Boot 3.5.6 service built with Java. It's configured to use Spring Security and Spring Web, with virtual threads enabled for improved performance.
 
 ## Development Commands
 
@@ -23,7 +23,7 @@ This is a Spring Boot 3.5.6 printer middleware service built with Java. It's con
 ./mvnw test
 
 # Run a specific test class
-./mvnw test -Dtest=SegariPrinterMiddlewareApplicationTests
+./mvnw test -Dtest=SegariServiceApplicationTests
 
 # Skip tests during build
 ./mvnw clean package -DskipTests
@@ -42,8 +42,8 @@ This is a Spring Boot 3.5.6 printer middleware service built with Java. It's con
 
 The application follows standard Spring Boot conventions:
 
-- **Main Application**: `id.segari.printer.segariprintermiddleware.SegariPrinterMiddlewareApplication` - Entry point with `@SpringBootApplication`
-- **Package Structure**: `id.segari.printer.segariprintermiddleware` base package with subdirectories:
+- **Main Application**: `id.segari.service.SegariServiceApplication` - Entry point with `@SpringBootApplication`
+- **Package Structure**: `id.segari.service` base package with subdirectories:
   - `controller/` - REST endpoints (currently empty, to be implemented)
   - `service/` - Business logic layer (currently empty, to be implemented)
 - **Configuration**: Uses `application.properties` with virtual threads enabled

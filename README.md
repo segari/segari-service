@@ -1,6 +1,6 @@
-# Segari Printer Middleware
+# Segari Service
 
-A Spring Boot middleware service for managing USB printers (Zebra, XPrinter) with WebSocket support for real-time print job reception, concurrent print queue management, and automatic update capabilities.
+A Spring Boot service for managing USB printers (Zebra, XPrinter) with WebSocket support for real-time print job reception, concurrent print queue management, and automatic update capabilities.
 
 ## Requirements
 
@@ -29,7 +29,7 @@ A Spring Boot middleware service for managing USB printers (Zebra, XPrinter) wit
 # Build portable executable with production profile
 ./mvnw clean verify -Pportable-exe -Dspring.profiles.active=prod
 
-# The portable app will be created in: target/dist/segari-printer-middleware/
+# The portable app will be created in: target/dist/segari-service/
 ```
 
 #### Windows Installer (.exe)
@@ -65,10 +65,10 @@ A Spring Boot middleware service for managing USB printers (Zebra, XPrinter) wit
 #### Production JAR
 ```bash
 # Default profile
-java -jar target/segari-printer-middleware-0.0.1-SNAPSHOT.jar
+java -jar target/segari-service-0.0.1-SNAPSHOT.jar
 
 # With specific profile
-java -Dspring.profiles.active=prod -jar target/segari-printer-middleware-0.0.1-SNAPSHOT.jar
+java -Dspring.profiles.active=prod -jar target/segari-service-0.0.1-SNAPSHOT.jar
 ```
 
 #### Windows Executable
@@ -116,7 +116,7 @@ The application exposes the following REST API endpoints on port `54124`:
 ./mvnw test
 
 # Run specific test class
-./mvnw test -Dtest=SegariPrinterMiddlewareApplicationTests
+./mvnw test -Dtest=SegariServiceApplicationTests
 ```
 
 ## Configuration
@@ -140,7 +140,7 @@ spring.threads.virtual.enabled=true
 
 # Application metadata
 app.version=1.0.9
-app.name=Segari Printer Middleware
+app.name=Segari Service
 
 # WebSocket
 websocket.server.url=wss://your-server.com
@@ -206,7 +206,7 @@ spring.lifecycle.timeout-per-shutdown-phase=5s
 
 ### Package Structure
 ```
-id.segari.printer.segariprintermiddleware/
+id.segari.service/
 ├── common/                          # DTOs and common utilities
 │   ├── dto/
 │   │   ├── printer/                # Printer-related DTOs

@@ -8,11 +8,11 @@
 		<version>3.5.6</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
-	<groupId>id.segari.printer</groupId>
-	<artifactId>segari-printer-middleware</artifactId>
+	<groupId>id.segari</groupId>
+	<artifactId>segari-service</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>segari-printer-middleware</name>
-	<description>segari-printer-middleware</description>
+	<name>segari-service</name>
+	<description>segari-service</description>
 	<url/>
 	<licenses>
 		<license/>
@@ -29,9 +29,9 @@
 	<properties>
 		<java.version>25</java.version>
 		<app.version>1.0.9</app.version>
-		<app.name>Segari Printer Middleware</app.name>
+		<app.name>Segari Service</app.name>
 		<app.vendor>Segari</app.vendor>
-		<app.description>Printer middleware service for handling print operations</app.description>
+		<app.description>Service for handling Segari operations</app.description>
 	</properties>
 	<dependencies>
 		<dependency>

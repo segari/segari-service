@@ -9,7 +9,7 @@
     <includeBaseDirectory>false</includeBaseDirectory>
     <fileSets>
         <fileSet>
-            <directory>${project.build.directory}/dist/segari-printer-middleware</directory>
+            <directory>${project.build.directory}/dist/segari-service</directory>
             <outputDirectory>/</outputDirectory>
             <includes>
                 <include>**/*</include>
