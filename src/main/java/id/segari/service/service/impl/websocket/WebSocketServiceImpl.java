@@ -70,6 +70,9 @@ public class WebSocketServiceImpl implements WebSocketService {
         }
         stompSession = null;
         isConnecting.set(false);
+        connectedWarehouseId.set(0);
+        lastMessageTime = null;
+        lastConnectTime = null;
     }
 
     @Override
