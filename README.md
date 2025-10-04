@@ -27,7 +27,7 @@ A Spring Boot service for managing USB printers (Zebra, XPrinter) with WebSocket
 #### Portable Executable (no installer)
 ```bash
 # Build portable executable with production profile
-./mvnw clean verify -Pportable-exe -Dspring.profiles.active=prod
+./mvnw verify -Pportable-exe -DskipTest -Dspring.profiles.active=prod
 
 # The portable app will be created in: target/dist/segari-service/
 ```
@@ -35,15 +35,15 @@ A Spring Boot service for managing USB printers (Zebra, XPrinter) with WebSocket
 #### Windows Installer (.exe)
 ```bash
 # Build Windows installer with production profile
-# REQUIRES: WiX Toolset v3 installed and in PATH
-./mvnw clean verify -Pwindows-exe -Dspring.profiles.active=prod
+# REQUIRES: WiX Toolset >= v3 installed and in PATH
+./mvnw verify -Pwindows-exe -DskipTest -Dspring.profiles.active=prod
 
 # The installer will be created in: target/dist/
 ```
 
 **Requirements for Windows builds**:
 - JDK 14+ with jpackage tool available
-- **WiX Toolset v3** (https://wixtoolset.org/releases/) - required for `.exe` installer only
+- **WiX Toolset >= v3** (https://wixtoolset.org/releases/) - required for `.exe` installer only
 - Windows OS or cross-platform jpackage support
 
 ### Running the Application
