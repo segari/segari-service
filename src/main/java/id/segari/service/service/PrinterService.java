@@ -13,7 +13,7 @@ public interface PrinterService {
     PrinterConnectResponse connect(PrinterConnectRequest request);
     PrinterDisconnectResponse disconnect(int id);
     void print(PrinterPrintRequest request);
-    List<PrinterUsb> getUsb();
+    List<PrinterUsb> getAllPrinter();
     List<PrinterConnectedResponse> getConnected();
     boolean isConnected(int id);
 }

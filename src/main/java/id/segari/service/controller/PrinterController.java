@@ -61,7 +61,7 @@ public class PrinterController {
 
     @GetMapping("/usb")
     public SuccessResponse<List<PrinterUsb>> getUsb(){
-        return new SuccessResponse<>(InternalResponseCode.SUCCESS, printerService.getUsb());
+        return new SuccessResponse<>(InternalResponseCode.SUCCESS, printerService.getAllPrinter());
     }
 
     @GetMapping("/print-domain")

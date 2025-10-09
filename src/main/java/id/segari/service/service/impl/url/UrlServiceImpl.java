@@ -1,7 +1,6 @@
 package id.segari.service.service.impl.url;
 
 import id.segari.service.service.UrlService;
-import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 

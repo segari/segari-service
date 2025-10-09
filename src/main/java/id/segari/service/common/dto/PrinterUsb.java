@@ -1,4 +1,4 @@
 package id.segari.service.common.dto;
 
-public record PrinterUsb(short vendorId, short productId, String productName, String serialNumber, int deviceAddress, int busNumber) {
+public record PrinterUsb(short vendorId, short productId, String productName, String serialNumber) {
 }

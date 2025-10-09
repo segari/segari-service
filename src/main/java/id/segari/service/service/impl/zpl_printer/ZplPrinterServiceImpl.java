@@ -10,8 +10,6 @@ import id.segari.service.common.dto.printer.print.PrinterPrintRequest;
 import id.segari.service.exception.InternalBaseException;
 import id.segari.service.service.PrinterService;
 import jakarta.annotation.PreDestroy;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
@@ -20,15 +18,11 @@ import org.usb4java.*;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 import java.nio.charset.StandardCharsets;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class ZplPrinterServiceImpl implements PrinterService {
-    private static final Logger log = LoggerFactory.getLogger(ZplPrinterServiceImpl.class);
     private static final Map<Integer, Printer> printerById = new ConcurrentHashMap<>();
 
     @Override
@@ -64,6 +58,18 @@ public class ZplPrinterServiceImpl implements PrinterService {
         }
     }
 
+    public List<PrinterUsb> getConnectedUsb() {
+        final Context context = new Context();
+        initContext(context);
+        return getAllConnectedPrinter(context);
+    }
+
+    public List<PrinterUsb> getPluggedUsb() {
+        final Context context = new Context();
+        initContext(context);
+        return getAllPluggedPrinter(context);
+    }
+
     private ByteBuffer getByteBuffer(PrinterPrintRequest request) {
         final byte[] data = request.command().getBytes(StandardCharsets.UTF_8);
         final ByteBuffer buffer = ByteBuffer.allocateDirect(data.length);
@@ -73,41 +79,89 @@ public class ZplPrinterServiceImpl implements PrinterService {
     }
 
     @Override
-    public List<PrinterUsb> getUsb() {
-        final Context context = new Context();
-        initContext(context);
-        return getAllPrinter(context);
+    public List<PrinterUsb> getAllPrinter() {
+        final List<PrinterUsb> connectedPrinter = getConnectedUsb();
+        final List<PrinterUsb> pluggedPrinter = getPluggedUsb();
+        connectedPrinter.addAll(pluggedPrinter);
+        return connectedPrinter;
     }
 
-    private List<PrinterUsb> getAllPrinter(Context context) {
+    private List<PrinterUsb> getAllConnectedPrinter(Context context) {
         try {
             final DeviceList devices = getDevices(context);
-            return convert(devices);
+            return convertConnected(devices);
         }finally {
             LibUsb.exit(context);
         }
     }
 
-    private List<PrinterUsb> convert(DeviceList devices){
+    private List<PrinterUsb> getAllPluggedPrinter(Context context) {
+        try {
+            final DeviceList devices = getDevices(context);
+            return convertPlugged(devices);
+        }finally {
+            LibUsb.exit(context);
+        }
+    }
+
+    private List<PrinterUsb> convertConnected(DeviceList devices){
+        final List<PrinterUsb> result = new LinkedList<>();
+        final Set<String> scannedSerialNumber = new HashSet<>();
+        for (Printer printer : printerById.values()) {
+            try {
+                for (Device device : devices) {
+                    final Optional<DeviceDescriptor> descriptorOptional = getDeviceDescriptor(device);
+                    if (descriptorOptional.isPresent()) {
+                        final DeviceDescriptor descriptor = descriptorOptional.get();
+                        if (descriptor.bDeviceClass() == 7 || isPrinterVendor(descriptor.idVendor())){
+                            if (descriptor.idVendor() == printer.vendorId() && descriptor.idProduct() == printer.productId()) {
+                                final DeviceHandle testHandle = new DeviceHandle();
+                                final int status = LibUsb.open(device, testHandle);
+                                final String serialNumber = getSerialNumber(descriptor, printer.deviceHandle());
+                                if (status != LibUsb.SUCCESS) {
+                                    if (scannedSerialNumber.contains(serialNumber)) continue;
+                                    result.add(new PrinterUsb(
+                                            printer.vendorId(),
+                                            printer.productId(),
+                                            getProductName(descriptor, printer.deviceHandle()),
+                                            serialNumber
+                                    ));
+                                    scannedSerialNumber.add(serialNumber);
+                                    break;
+                                } else {
+                                    LibUsb.close(testHandle);
+                                }
+                            }
+                        }
+                    }
+                }
+            } finally {
+                LibUsb.freeDeviceList(devices, true);
+            }
+        }
+        return result;
+    }
+
+    private List<PrinterUsb> convertPlugged(DeviceList devices){
         try {
            final List<PrinterUsb> printers = new LinkedList<>();
             for (final Device device : devices) {
-                final Optional<DeviceDescriptor> descriptorOptional = getDeviceDescriptor(device);
-                if (descriptorOptional.isPresent()){
-                    final DeviceDescriptor descriptor = descriptorOptional.get();
-                    if (descriptor.bDeviceClass() == 7 || isPrinterVendor(descriptor.idVendor())){
-                        final PrinterDescription printerDescription = getPrinterDescription(device, descriptor);
-                        final PrinterUsb printer = new PrinterUsb(
-                                descriptor.idVendor(),
-                                descriptor.idProduct(),
-                                printerDescription.productName(),
-                                printerDescription.serialNumber(),
-                                LibUsb.getDeviceAddress(device),
-                                LibUsb.getBusNumber(device)
-                                );
-                        printers.add(printer);
+                try {
+                    final Optional<DeviceDescriptor> descriptorOptional = getDeviceDescriptor(device);
+                    if (descriptorOptional.isPresent()){
+                        final DeviceDescriptor descriptor = descriptorOptional.get();
+                        if (descriptor.bDeviceClass() == 7 || isPrinterVendor(descriptor.idVendor())){
+                            final PrinterDescription printerDescription = getPrinterDescription(device, descriptor);
+                            final PrinterUsb printer = new PrinterUsb(
+                                    descriptor.idVendor(),
+                                    descriptor.idProduct(),
+                                    printerDescription.productName(),
+                                    printerDescription.serialNumber()
+                                    );
+                            printers.add(printer);
+                        }
                     }
-                }
+                } catch (Exception _) {}
             }
            return printers;
         }finally {
