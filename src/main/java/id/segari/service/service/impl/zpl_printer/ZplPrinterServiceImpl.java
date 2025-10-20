@@ -106,9 +106,9 @@ public class ZplPrinterServiceImpl implements PrinterService {
 
     private List<PrinterUsb> convertConnected(DeviceList devices){
         final List<PrinterUsb> result = new LinkedList<>();
-        final Set<String> scannedSerialNumber = new HashSet<>();
-        for (Printer printer : printerById.values()) {
-            try {
+        try {
+            final Set<String> scannedSerialNumber = new HashSet<>();
+            for (Printer printer : printerById.values()) {
                 for (Device device : devices) {
                     final Optional<DeviceDescriptor> descriptorOptional = getDeviceDescriptor(device);
                     if (descriptorOptional.isPresent()) {
@@ -135,9 +135,9 @@ public class ZplPrinterServiceImpl implements PrinterService {
                         }
                     }
                 }
-            } finally {
-                LibUsb.freeDeviceList(devices, true);
             }
+        } finally {
+            LibUsb.freeDeviceList(devices, true);
         }
         return result;
     }
