@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
 @Service
 public class PrintQueueServiceImpl implements PrintQueueService {
     private static final int MAX_QUEUES = 20;
-    private static final int MAX_QUEUE_SIZE = 20;
+    private static final int MAX_QUEUE_SIZE = 500;
 
     private final Map<Integer, LinkedBlockingQueue<PrinterPrintRequest>> printerQueues = new ConcurrentHashMap<>();
     private final Map<Integer, Thread> consumerThreads = new ConcurrentHashMap<>();
