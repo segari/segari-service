@@ -10,6 +10,8 @@ import id.segari.service.common.dto.printer.print.PrinterPrintRequest;
 import id.segari.service.exception.InternalBaseException;
 import id.segari.service.service.PrinterService;
 import jakarta.annotation.PreDestroy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
@@ -20,41 +22,69 @@ import java.nio.IntBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
 
 @Service
 public class ZplPrinterServiceImpl implements PrinterService {
+    private static final Logger log = LoggerFactory.getLogger(ZplPrinterServiceImpl.class);
     private static final Map<Integer, Printer> printerById = new ConcurrentHashMap<>();
+    private static final Map<Integer, ReentrantLock> lockById = new ConcurrentHashMap<>();
 
     @Override
     public PrinterConnectResponse connect(PrinterConnectRequest request) {
-        if (printerById.containsKey(request.id())) return new PrinterConnectResponse(InternalResponseCode.PRINTER_ALREADY_CONNECTED, "Printer Already Connected");
-        printerById.put(request.id(), openUsbDevice(request));
-        return new PrinterConnectResponse(InternalResponseCode.SUCCESS_CONNECTING_PRINTER, "Success Connecting Printer");
+        final ReentrantLock lock = getLock(request.id());
+        lock.lock();
+        try {
+            if (printerById.containsKey(request.id())) {
+                return new PrinterConnectResponse(InternalResponseCode.PRINTER_ALREADY_CONNECTED, "Printer Already Connected");
+            }
+            final Printer printer = openUsbDevice(request);
+            printerById.put(request.id(), printer);
+            log.info("Printer connected: id={}, vendorId={}, productId={}",
+                request.id(), request.vendorId(), request.productId());
+            return new PrinterConnectResponse(InternalResponseCode.SUCCESS_CONNECTING_PRINTER, "Success Connecting Printer");
+        } finally {
+            lock.unlock();
+        }
     }
 
     @Override
     public PrinterDisconnectResponse disconnect(int id) {
-        if (!printerById.containsKey(id)) return new PrinterDisconnectResponse(InternalResponseCode.CANNOT_FIND_CONNECTED_PRINTER, "Cannot Find Connected Printer");
-        final Printer printer = printerById.remove(id);
-        final Context context = printer.context();
-        final DeviceHandle deviceHandle = printer.deviceHandle();
-        LibUsb.releaseInterface(deviceHandle, 0);
-        LibUsb.close(deviceHandle);
-        LibUsb.exit(context);
-        return new PrinterDisconnectResponse(InternalResponseCode.SUCCESS_DISCONNECTING_PRINTER, "Success Disconnecting Printer");
+        final ReentrantLock lock = getLock(id);
+        lock.lock();
+        try {
+            if (!printerById.containsKey(id)) {
+                return new PrinterDisconnectResponse(InternalResponseCode.CANNOT_FIND_CONNECTED_PRINTER, "Cannot Find Connected Printer");
+            }
+
+            final Printer printer = printerById.remove(id);
+            cleanupPrinterResources(printer, true); // Throw on error for explicit disconnect
+            removeLock(id);
+            log.info("Printer disconnected: id={}", id);
+            return new PrinterDisconnectResponse(InternalResponseCode.SUCCESS_DISCONNECTING_PRINTER, "Success Disconnecting Printer");
+        } finally {
+            lock.unlock();
+        }
     }
 
     @Override
     public void print(PrinterPrintRequest request) {
-        if (!printerById.containsKey(request.id())) {
-            throw new InternalBaseException(InternalResponseCode.CANNOT_FIND_CONNECTED_PRINTER, HttpStatus.BAD_REQUEST, "Cannot find connected printer ith id: " + request.id());
-        }
-        final Printer printer = printerById.get(request.id());
-        final ByteBuffer buffer = getByteBuffer(request);
-        final IntBuffer transferred = IntBuffer.allocate(1);
-        final int status = LibUsb.bulkTransfer(printer.deviceHandle(), (byte) 0x01, buffer, transferred, 5000); // 0x01 is harcoded. use findPrinterEndpoint later
-        if (status != LibUsb.SUCCESS){
-            throw new InternalBaseException(InternalResponseCode.FAILED_TO_PRINT, HttpStatus.CONFLICT, "Failed to print");
+        final ReentrantLock lock = getLock(request.id());
+        lock.lock();
+        try {
+            if (!printerById.containsKey(request.id())) {
+                throw new InternalBaseException(InternalResponseCode.CANNOT_FIND_CONNECTED_PRINTER, HttpStatus.BAD_REQUEST, "Cannot find connected printer with id: " + request.id());
+            }
+            final Printer printer = printerById.get(request.id());
+            final ByteBuffer buffer = getByteBuffer(request);
+            final IntBuffer transferred = IntBuffer.allocate(1);
+            final int status = LibUsb.bulkTransfer(printer.deviceHandle(), (byte) 0x01, buffer, transferred, 5000); // 0x01 is hardcoded. use findPrinterEndpoint later
+            if (status != LibUsb.SUCCESS) {
+                throw new InternalBaseException(InternalResponseCode.FAILED_TO_PRINT, HttpStatus.CONFLICT, "Failed to print");
+            }
+            log.debug("Print successful: id={}, bytes transferred={}", request.id(), transferred.get(0));
+        } finally {
+            lock.unlock();
         }
     }
 
@@ -230,7 +260,131 @@ public class ZplPrinterServiceImpl implements PrinterService {
 
     @Override
     public boolean isConnected(int id) {
-        return printerById.containsKey(id);
+        final ReentrantLock lock = getLock(id);
+        lock.lock();
+        try {
+            // Quick check: if not in map, return false
+            if (!printerById.containsKey(id)) {
+                return false;
+            }
+
+            final Printer printer = printerById.get(id);
+
+            // Verify device is still physically connected
+            if (!verifyDeviceStillConnected(printer)) {
+                log.warn("Printer id={} is no longer physically connected. Auto-removing from connected printers.", id);
+
+                // Cleanup resources (don't throw on error since device is already gone)
+                cleanupPrinterResources(printer, false);
+
+                // Remove from map
+                printerById.remove(id);
+
+                return false;
+            }
+
+            return true;
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    private ReentrantLock getLock(int id) {
+        return lockById.computeIfAbsent(id, k -> new ReentrantLock());
+    }
+
+    private void removeLock(int id) {
+        lockById.remove(id);
+    }
+
+    private void cleanupPrinterResources(Printer printer, boolean throwOnError) {
+        final Context context = printer.context();
+        final DeviceHandle deviceHandle = printer.deviceHandle();
+
+        // Try to release interface
+        try {
+            final int releaseStatus = LibUsb.releaseInterface(deviceHandle, 0);
+            if (releaseStatus != LibUsb.SUCCESS) {
+                final String error = "Failed to release interface: " + LibUsb.strError(releaseStatus);
+                if (throwOnError) {
+                    throw new InternalBaseException(InternalResponseCode.INTERNAL_ERROR, HttpStatus.CONFLICT, error);
+                } else {
+                    log.warn(error);
+                }
+            }
+        } catch (Exception e) {
+            if (throwOnError) {
+                throw e;
+            } else {
+                log.warn("Exception while releasing interface: {}", e.getMessage());
+            }
+        }
+
+        // Try to close device handle
+        try {
+            LibUsb.close(deviceHandle);
+        } catch (Exception e) {
+            if (throwOnError) {
+                throw e;
+            } else {
+                log.warn("Exception while closing device handle: {}", e.getMessage());
+            }
+        }
+
+        // Try to exit context
+        try {
+            LibUsb.exit(context);
+        } catch (Exception e) {
+            if (throwOnError) {
+                throw e;
+            } else {
+                log.warn("Exception while exiting context: {}", e.getMessage());
+            }
+        }
+    }
+
+    private boolean verifyDeviceStillConnected(Printer printer) {
+        try {
+            // Try to get the device from the existing handle
+            final Device device = LibUsb.getDevice(printer.deviceHandle());
+            if (device == null) {
+                log.debug("Device handle no longer has an associated device");
+                return false;
+            }
+
+            // Try to get device descriptor to verify the device is still accessible
+            final DeviceDescriptor descriptor = new DeviceDescriptor();
+            final int status = LibUsb.getDeviceDescriptor(device, descriptor);
+
+            if (status != LibUsb.SUCCESS) {
+                log.debug("Failed to get device descriptor: {}", LibUsb.strError(status));
+                return false;
+            }
+
+            // Verify vendorId and productId match (sanity check)
+            if (descriptor.idVendor() != printer.vendorId() ||
+                descriptor.idProduct() != printer.productId()) {
+                log.warn("Device vendorId/productId mismatch - expected {}/{}, got {}/{}",
+                    printer.vendorId(), printer.productId(),
+                    descriptor.idVendor(), descriptor.idProduct());
+                return false;
+            }
+
+            // Try a simple operation on the existing handle to verify it's still valid
+            // Attempting to get a string descriptor - if device is unplugged, this will fail
+            try {
+                final String serial = getSerialNumber(descriptor, printer.deviceHandle());
+                // If we can read the serial number, the device is still connected
+                return serial != null && !serial.isEmpty();
+            } catch (Exception e) {
+                log.debug("Failed to read serial number from device handle: {}", e.getMessage());
+                return false;
+            }
+
+        } catch (Exception e) {
+            log.debug("Exception while verifying device connection: {}", e.getMessage());
+            return false;
+        }
     }
 
     private Printer openUsbDevice(PrinterConnectRequest request) {
@@ -310,14 +464,42 @@ public class ZplPrinterServiceImpl implements PrinterService {
     }
 
     @PreDestroy
-    public void shutdown(){
-        for (Printer printer : printerById.values()) {
-            final Context context = printer.context();
-            final DeviceHandle deviceHandle = printer.deviceHandle();
-            LibUsb.releaseInterface(deviceHandle, 0);
-            LibUsb.close(deviceHandle);
-            LibUsb.exit(context);
+    public void shutdown() {
+        log.info("Shutting down ZplPrinterService. Cleaning up {} connected printers.", printerById.size());
+
+        // Acquire all locks to prevent concurrent operations during shutdown
+        final List<ReentrantLock> acquiredLocks = new ArrayList<>();
+        for (Integer id : lockById.keySet()) {
+            final ReentrantLock lock = getLock(id);
+            lock.lock();
+            acquiredLocks.add(lock);
         }
-        printerById.clear();
+
+        try {
+            // Cleanup all printers
+            for (Map.Entry<Integer, Printer> entry : printerById.entrySet()) {
+                try {
+                    log.debug("Cleaning up printer id={}", entry.getKey());
+                    cleanupPrinterResources(entry.getValue(), false);
+                } catch (Exception e) {
+                    log.error("Error cleaning up printer id={}: {}", entry.getKey(), e.getMessage());
+                }
+            }
+
+            // Clear maps
+            printerById.clear();
+            lockById.clear();
+
+            log.info("ZplPrinterService shutdown complete.");
+        } finally {
+            // Release all locks
+            for (ReentrantLock lock : acquiredLocks) {
+                try {
+                    lock.unlock();
+                } catch (Exception e) {
+                    log.warn("Error releasing lock during shutdown: {}", e.getMessage());
+                }
+            }
+        }
     }
 }
