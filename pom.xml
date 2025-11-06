@@ -74,6 +74,13 @@
 			<groupId>org.apache.httpcomponents.client5</groupId>
 			<artifactId>httpclient5</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>com.zkteco</groupId>
+			<artifactId>zkfingerreader</artifactId>
+			<version>1.0</version>
+			<scope>system</scope>
+			<systemPath>${project.basedir}/libs/ZKFingerReader.jar</systemPath>
+		</dependency>
 	</dependencies>
 
 	<build>
@@ -83,6 +90,7 @@
 				<artifactId>spring-boot-maven-plugin</artifactId>
 				<configuration>
 					<jvmArguments>--enable-native-access=ALL-UNNAMED</jvmArguments>
+					<includeSystemScope>true</includeSystemScope>
 				</configuration>
 			</plugin>
 			<plugin>
