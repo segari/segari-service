@@ -78,8 +78,19 @@
 			<groupId>com.zkteco</groupId>
 			<artifactId>zkfingerreader</artifactId>
 			<version>1.0</version>
-			<scope>system</scope>
-			<systemPath>${project.basedir}/libs/ZKFingerReader.jar</systemPath>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-jpa</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.h2database</groupId>
+			<artifactId>h2</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.flywaydb</groupId>
+			<artifactId>flyway-core</artifactId>
 		</dependency>
 	</dependencies>
 
@@ -90,7 +101,6 @@
 				<artifactId>spring-boot-maven-plugin</artifactId>
 				<configuration>
 					<jvmArguments>--enable-native-access=ALL-UNNAMED</jvmArguments>
-					<includeSystemScope>true</includeSystemScope>
 				</configuration>
 			</plugin>
 			<plugin>
@@ -104,6 +114,21 @@
 						<arg>-parameters</arg>
 					</compilerArgs>
 				</configuration>
+			</plugin>
+			<!-- Exec Maven Plugin for custom commands -->
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>exec-maven-plugin</artifactId>
+				<version>3.1.0</version>
+				<executions>
+					<execution>
+						<id>rename-migrations</id>
+						<configuration>
+							<mainClass>id.segari.service.util.MigrationRenamer</mainClass>
+							<classpathScope>compile</classpathScope>
+						</configuration>
+					</execution>
+				</executions>
 			</plugin>
 		</plugins>
 	</build>
@@ -146,6 +171,7 @@
 											<option>--enable-native-access=ALL-UNNAMED</option>
                                             <!--suppress UnresolvedMavenProperty -->
                                             <option>-Dspring.profiles.active=${spring.profiles.active}</option>
+                                            <option>-DAPP_DATA_DIR=C:/ProgramData/segari-service</option>
 											<option>-Xmx512m</option>
 										</javaOptions>
 
@@ -194,6 +220,7 @@
 											<option>--enable-native-access=ALL-UNNAMED</option>
                                             <!--suppress UnresolvedMavenProperty -->
                                             <option>-Dspring.profiles.active=${spring.profiles.active}</option>
+                                            <option>-DAPP_DATA_DIR=C:/ProgramData/segari-service</option>
 											<option>-Xmx512m</option>
 										</javaOptions>
 									</configuration>
@@ -222,6 +249,24 @@
 									</configuration>
 								</execution>
 							</executions>
+						</plugin>
+					</plugins>
+				</build>
+			</profile>
+
+			<!-- Migration rename profile - Usage: ./mvnw -Pm -->
+			<profile>
+				<id>m</id>
+				<build>
+					<defaultGoal>compile exec:java</defaultGoal>
+					<plugins>
+						<plugin>
+							<groupId>org.codehaus.mojo</groupId>
+							<artifactId>exec-maven-plugin</artifactId>
+							<configuration>
+								<mainClass>id.segari.service.util.MigrationRenamer</mainClass>
+								<classpathScope>compile</classpathScope>
+							</configuration>
 						</plugin>
 					</plugins>
 				</build>

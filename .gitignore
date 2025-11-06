@@ -40,3 +40,6 @@ build/
 
 ## log files ##
 .logs/
+
+## database ##
+data/
