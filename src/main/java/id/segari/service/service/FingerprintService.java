@@ -1,7 +1,13 @@
 package id.segari.service.service;
 
+import id.segari.service.common.dto.fingerprint.FingerprintEnrollmentResponse;
+import id.segari.service.common.dto.fingerprint.FingerprintIdentificationResponse;
+import id.segari.service.common.dto.fingerprint.FingerprintMachine;
+
 public interface FingerprintService {
-    void sync(long shippingPointId);
-    void add(long internalToolsUserId);
-    void enroll();
+    FingerprintMachine getFingerprintMachine();
+    void connect();
+    void disconnect();
+    FingerprintEnrollmentResponse initEnrollment(String employeeId);
+    FingerprintIdentificationResponse initIdentification();
 }

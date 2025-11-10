@@ -2,7 +2,7 @@ package id.segari.service.common;
 
 public enum InternalResponseCode {
     SUCCESS,
-    BASIC,
+    BASIC_ERROR,
     NOT_FOUND,
     INVALID_ARGUMENT,
     VALIDATION_ERROR,

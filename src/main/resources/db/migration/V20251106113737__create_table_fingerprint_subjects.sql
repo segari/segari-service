@@ -1,12 +1,10 @@
 CREATE TABLE IF NOT EXISTS fingerprint_subjects
 (
-    id                     BIGINT AUTO_INCREMENT PRIMARY KEY,
-    internal_tools_user_id BIGINT                   NOT NULL,
-    template_group         VARCHAR                  NOT NULL,
-    template               bytea                  NOT NULL,
-    created_at             TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
-    updated_at             TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
-    deleted_at             TIMESTAMP WITH TIME ZONE
+    id                     BIGINT PRIMARY KEY,
+    internal_tools_user_id BIGINT  NOT NULL,
+    template_group         VARCHAR NOT NULL,
+    template_vendor        VARCHAR NOT NULL,
+    template               VARBINARY NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_fingerprint_subjects_internal_tools_user_id
