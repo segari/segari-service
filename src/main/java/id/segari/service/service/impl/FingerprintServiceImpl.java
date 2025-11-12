@@ -4,16 +4,20 @@ import id.segari.service.common.dto.fingerprint.FingerprintEnrollmentResponse;
 import id.segari.service.common.dto.fingerprint.FingerprintIdentificationResponse;
 import id.segari.service.common.dto.fingerprint.FingerprintStatusResponse;
 import id.segari.service.db.enums.TemplateGroup;
+import id.segari.service.exception.BaseException;
 import id.segari.service.service.FingerprintService;
 import id.segari.service.service.impl.fingerprint.ZKTecoFingerprintServiceImpl;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
 @Service
 @Primary
 public class FingerprintServiceImpl implements FingerprintService {
+
+    private static final long LOCK_TIMEOUT_SECONDS = 2;
 
     private final ReentrantLock lock = new ReentrantLock();
     private final ZKTecoFingerprintServiceImpl zkTecoImpl;
@@ -22,9 +26,20 @@ public class FingerprintServiceImpl implements FingerprintService {
         this.zkTecoImpl = zkTecoImpl;
     }
 
+    private void acquireLock() {
+        try {
+            if (!lock.tryLock(LOCK_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
+                throw new BaseException("Failed to acquire fingerprint service lock within " + LOCK_TIMEOUT_SECONDS + " seconds");
+            }
+        } catch (final InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new BaseException("Lock acquisition interrupted: " + e.getMessage());
+        }
+    }
+
     @Override
     public void connect() {
-        lock.lock();
+        acquireLock();
         try {
             zkTecoImpl.connect();
         } finally {
@@ -34,7 +49,7 @@ public class FingerprintServiceImpl implements FingerprintService {
 
     @Override
     public void disconnect() {
-        lock.lock();
+        acquireLock();
         try {
             zkTecoImpl.disconnect();
         } finally {
@@ -44,7 +59,7 @@ public class FingerprintServiceImpl implements FingerprintService {
 
     @Override
     public FingerprintStatusResponse getFingerprintStatus() {
-        lock.lock();
+        acquireLock();
         try {
             return zkTecoImpl.getFingerprintStatus();
         } finally {
@@ -54,7 +69,7 @@ public class FingerprintServiceImpl implements FingerprintService {
 
     @Override
     public FingerprintEnrollmentResponse initEnrollment(final String employeeId, final TemplateGroup templateGroup) {
-        lock.lock();
+        acquireLock();
         try {
             return zkTecoImpl.initEnrollment(employeeId, templateGroup);
         } finally {
@@ -64,7 +79,7 @@ public class FingerprintServiceImpl implements FingerprintService {
 
     @Override
     public FingerprintIdentificationResponse initIdentification() {
-        lock.lock();
+        acquireLock();
         try {
             return zkTecoImpl.initIdentification();
         } finally {
@@ -74,7 +89,7 @@ public class FingerprintServiceImpl implements FingerprintService {
 
     @Override
     public void sync(final long warehouseId) {
-        lock.lock();
+        acquireLock();
         try {
             zkTecoImpl.sync(warehouseId);
         } finally {
@@ -84,7 +99,7 @@ public class FingerprintServiceImpl implements FingerprintService {
 
     @Override
     public void sync(final long warehouseId, final long internalToolsUserId) {
-        lock.lock();
+        acquireLock();
         try {
             zkTecoImpl.sync(warehouseId, internalToolsUserId);
         } finally {
@@ -94,7 +109,7 @@ public class FingerprintServiceImpl implements FingerprintService {
 
     @Override
     public void add(final String employeeId) {
-        lock.lock();
+        acquireLock();
         try {
             zkTecoImpl.add(employeeId);
         } finally {
