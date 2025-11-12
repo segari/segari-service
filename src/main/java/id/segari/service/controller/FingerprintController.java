@@ -1,7 +1,7 @@
 package id.segari.service.controller;
 
 import id.segari.service.common.InternalResponseCode;
-import id.segari.service.common.dto.fingerprint.FingerprintMachine;
+import id.segari.service.common.dto.fingerprint.FingerprintStatusResponse;
 import id.segari.service.common.response.SuccessResponse;
 import id.segari.service.service.FingerprintService;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,9 +19,9 @@ public class FingerprintController {
         this.fingerprintService = fingerprintService;
     }
 
-    @GetMapping("/plugged")
-    public SuccessResponse<FingerprintMachine> getFingerprintMachine() {
-        return new SuccessResponse<>(InternalResponseCode.SUCCESS, fingerprintService.getFingerprintMachine());
+    @GetMapping("/status")
+    public SuccessResponse<FingerprintStatusResponse> getFingerprintMachine() {
+        return new SuccessResponse<>(InternalResponseCode.SUCCESS, fingerprintService.getFingerprintStatus());
     }
 
     @PostMapping("/connect")

@@ -27,11 +27,11 @@ public class FingerprintWsController {
     @MessageMapping(ENROLL)
     @SendTo(ENROLL_TOPIC)
     public FingerprintEnrollmentResponse handleFingerprintEnroll(FingerprintEnrollmentRequest request) {
-        return fingerprintService.initEnrollment(request.employeeId());
+        return fingerprintService.initEnrollment(request.employeeId(), request.templateGroup());
     }
 
     /**
-     * Handle fingerprint enrollment requests
+     * Handle fingerprint identification requests
      * Client sends to: /app/fingerprint/identify
      * Response broadcast to: /topic/fingerprint/identify
      */

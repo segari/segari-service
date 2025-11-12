@@ -1,4 +1,6 @@
 package id.segari.service.common.dto.fingerprint;
 
-public record FingerprintEnrollmentRequest(String employeeId) {
+import id.segari.service.db.enums.TemplateGroup;
+
+public record FingerprintEnrollmentRequest(String employeeId, TemplateGroup templateGroup) {
 }

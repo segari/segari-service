@@ -3,14 +3,25 @@ package id.segari.service.service.impl.fingerprint;
 import com.zkteco.biometric.FingerprintSensorErrorCode;
 import com.zkteco.biometric.FingerprintSensorEx;
 import id.segari.service.common.dto.fingerprint.*;
+import id.segari.service.db.entity.FingerprintAdhocUser;
 import id.segari.service.db.entity.FingerprintSubject;
+import id.segari.service.db.enums.TemplateGroup;
+import id.segari.service.db.enums.TemplateVendor;
+import id.segari.service.db.repository.FingerprintAdhocUserRepository;
 import id.segari.service.db.repository.FingerprintSubjectRepository;
 import id.segari.service.exception.BaseException;
+import id.segari.service.service.FingerprintExternalService;
 import id.segari.service.service.FingerprintService;
+import id.segari.service.service.IdentifierService;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.util.CollectionUtils;
 import org.usb4java.*;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -38,30 +49,47 @@ public class ZKTecoFingerprintServiceImpl implements FingerprintService {
     private final AtomicReference<String> employeeId = new AtomicReference<>(null);
     private final AtomicReference<FingerprintState> state = new AtomicReference<>(FingerprintState.NONE);
     private final AtomicInteger enrollId = new AtomicInteger(1);
+    private final AtomicReference<TemplateGroup> enrollTemplateGroup = new AtomicReference<>(null);
     private final byte[][] registerCandidateTemplates = new byte[ENROLLMENT_SCANS_REQUIRED][TEMPLATE_SIZE];
 
     private final SimpMessagingTemplate simpMessagingTemplate;
     private final FingerprintSubjectRepository fingerprintSubjectRepository;
+    private final FingerprintAdhocUserRepository fingerprintAdhocUserRepository;
+
+    private final IdentifierService identifierService;
+    private final FingerprintExternalService fingerprintExternalService;
     private Thread workerThread;
 
-    public ZKTecoFingerprintServiceImpl(SimpMessagingTemplate simpMessagingTemplate, FingerprintSubjectRepository fingerprintSubjectRepository) {
+    public ZKTecoFingerprintServiceImpl(
+            SimpMessagingTemplate simpMessagingTemplate,
+            FingerprintSubjectRepository fingerprintSubjectRepository,
+            FingerprintAdhocUserRepository fingerprintAdhocUserRepository,
+            IdentifierService identifierService,
+            FingerprintExternalService fingerprintExternalService
+    ) {
         this.simpMessagingTemplate = simpMessagingTemplate;
         this.fingerprintSubjectRepository = fingerprintSubjectRepository;
+        this.fingerprintAdhocUserRepository = fingerprintAdhocUserRepository;
+        this.identifierService = identifierService;
+        this.fingerprintExternalService = fingerprintExternalService;
     }
 
-    @Override
-    public FingerprintMachine getFingerprintMachine() {
-        final Context context = new Context();
-        initContext(context);
-
+    private FingerprintMachine getFingerprintMachine() {
         try {
-            return findFingerprintDevice(context);
-        } finally {
-            LibUsb.exit(context);
+            final Context context = new Context();
+            initContext(context);
+
+            try {
+                return findFingerprintDevice(context);
+            } finally {
+                LibUsb.exit(context);
+            }
+        } catch (Exception e) {
+            return null;
         }
     }
 
-    private FingerprintMachine findFingerprintDevice(Context context) {
+    private FingerprintMachine findFingerprintDevice(final Context context) {
         final DeviceList devices = getDevices(context);
         try {
             return scanDevicesForFingerprint(devices);
@@ -70,9 +98,9 @@ public class ZKTecoFingerprintServiceImpl implements FingerprintService {
         }
     }
 
-    private FingerprintMachine scanDevicesForFingerprint(DeviceList devices) {
-        for (Device device : devices) {
-            Optional<FingerprintMachine> machine = tryCreateFingerprintMachine(device);
+    private FingerprintMachine scanDevicesForFingerprint(final DeviceList devices) {
+        for (final Device device : devices) {
+            final Optional<FingerprintMachine> machine = tryCreateFingerprintMachine(device);
             if (machine.isPresent()) {
                 return machine.get();
             }
@@ -80,23 +108,30 @@ public class ZKTecoFingerprintServiceImpl implements FingerprintService {
         throw new BaseException("No fingerprint device found");
     }
 
-    private Optional<FingerprintMachine> tryCreateFingerprintMachine(Device device) {
+    private Optional<FingerprintMachine> tryCreateFingerprintMachine(final Device device) {
         return getDeviceDescriptor(device)
                 .filter(descriptor -> isSupportedDevice(descriptor.idVendor()))
                 .map(descriptor -> new FingerprintMachine(
                         descriptor.idProduct(),
-                        getDeviceName(descriptor.idVendor(), descriptor.idProduct())
+                        getDeviceName(descriptor.idVendor(), descriptor.idProduct()),
+                        getDeviceVendor(descriptor.idVendor())
                 ));
     }
 
-    private void initContext(Context context) {
+    private TemplateVendor getDeviceVendor(final short vendorId) {
+        if (isZKT(vendorId)) return TemplateVendor.ZKTECO;
+        if (isHID(vendorId)) return TemplateVendor.HID;
+        return null;
+    }
+
+    private void initContext(final Context context) {
         final int status = LibUsb.init(context);
         if (status != LibUsb.SUCCESS) {
             throw new BaseException("Unable to initialize libusb: " + LibUsb.strError(status));
         }
     }
 
-    private DeviceList getDevices(Context context) {
+    private DeviceList getDevices(final Context context) {
         final DeviceList devices = new DeviceList();
         final int status = LibUsb.getDeviceList(context, devices);
         if (status < 0) {
@@ -105,22 +140,22 @@ public class ZKTecoFingerprintServiceImpl implements FingerprintService {
         return devices;
     }
 
-    private Optional<DeviceDescriptor> getDeviceDescriptor(Device device) {
+    private Optional<DeviceDescriptor> getDeviceDescriptor(final Device device) {
         final DeviceDescriptor descriptor = new DeviceDescriptor();
         final int status = LibUsb.getDeviceDescriptor(device, descriptor);
         if (status != LibUsb.SUCCESS) return Optional.empty();
         return Optional.of(descriptor);
     }
 
-    private boolean isZKT(short vendorId) {
+    private boolean isZKT(final short vendorId) {
         return vendorId == VENDOR_ID_ZKT;
     }
 
-    private boolean isHID(short vendorId) {
+    private boolean isHID(final short vendorId) {
         return vendorId == VENDOR_ID_HID;
     }
 
-    private String getDeviceName(short vendorId, long productId) {
+    private String getDeviceName(final short vendorId, final long productId) {
         if (isZKT(vendorId)) {
             return productId == PRODUCT_ID_ZK9500 ? "ZKTeco ZK9500" : "N/A";
         }
@@ -130,7 +165,7 @@ public class ZKTecoFingerprintServiceImpl implements FingerprintService {
         return "N/A";
     }
 
-    private boolean isSupportedDevice(short vendorId) {
+    private boolean isSupportedDevice(final short vendorId) {
         return isZKT(vendorId) || isHID(vendorId);
     }
 
@@ -140,24 +175,24 @@ public class ZKTecoFingerprintServiceImpl implements FingerprintService {
         }
     }
 
-    private void validatePositive(int value) {
+    private void validatePositive(final int value) {
         if (value < 0) {
             throw new BaseException("No fingerprint device found");
         }
     }
 
-    private void validateNonZero(long value, String errorMessage) {
+    private void validateNonZero(final long value, final String errorMessage) {
         if (value == 0) {
             throw new BaseException(errorMessage);
         }
     }
 
-    private void sendEnrollmentStatus(FingerprintEnrollmentStatus status, int currentScan, byte[] template) {
+    private void sendEnrollmentStatus(final FingerprintEnrollmentStatus status, final int currentScan, final byte[] template) {
         simpMessagingTemplate.convertAndSend(ENROLL_TOPIC,
-                new FingerprintEnrollmentResponse(status, ENROLLMENT_SCANS_REQUIRED, currentScan, employeeId.get(), template));
+                new FingerprintEnrollmentResponse(status, ENROLLMENT_SCANS_REQUIRED, currentScan, TemplateVendor.ZKTECO, enrollTemplateGroup.get(), employeeId.get(), template));
     }
 
-    private void sendIdentificationStatus(FingerprintIdentificationStatus status, Long userId) {
+    private void sendIdentificationStatus(final FingerprintIdentificationStatus status, final Long userId) {
         simpMessagingTemplate.convertAndSend(IDENTIFY_TOPIC,
                 new FingerprintIdentificationResponse(status, userId));
     }
@@ -204,7 +239,7 @@ public class ZKTecoFingerprintServiceImpl implements FingerprintService {
         });
     }
 
-    private void processFingerprintTemplate(byte[] template) {
+    private void processFingerprintTemplate(final byte[] template) {
         switch (state.get()) {
             case ENROLL -> handleEnroll(template);
             case IDENTIFICATION -> handleIdentify(template);
@@ -245,12 +280,27 @@ public class ZKTecoFingerprintServiceImpl implements FingerprintService {
     }
 
     @Override
-    public FingerprintEnrollmentResponse initEnrollment(String employeeId) {
-        restart(employeeId);
+    public FingerprintStatusResponse getFingerprintStatus() {
+        final FingerprintMachine fingerprintMachine = getFingerprintMachine();
+        final FingerprintMachineStatus status = getFingerprintMachineStatus(fingerprintMachine);
+        return new FingerprintStatusResponse(status, fingerprintMachine, identifierService.get());
+    }
+
+    private FingerprintMachineStatus getFingerprintMachineStatus(final FingerprintMachine fingerprintMachine) {
+        if (Objects.isNull(fingerprintMachine)) return FingerprintMachineStatus.UNPLUGGED;
+        if (device.get() == 0) return FingerprintMachineStatus.PLUGGED;
+        return FingerprintMachineStatus.CONNECTED;
+    }
+
+    @Override
+    public FingerprintEnrollmentResponse initEnrollment(final String employeeId, final TemplateGroup templateGroup) {
+        restart(employeeId, templateGroup);
         return new FingerprintEnrollmentResponse(
                 FingerprintEnrollmentStatus.INITIALIZED,
                 ENROLLMENT_SCANS_REQUIRED,
                 0,
+                TemplateVendor.ZKTECO,
+                templateGroup,
                 employeeId,
                 new byte[0]
         );
@@ -262,21 +312,92 @@ public class ZKTecoFingerprintServiceImpl implements FingerprintService {
         return new FingerprintIdentificationResponse(FingerprintIdentificationStatus.INITIALIZED, null);
     }
 
-    private void restart(String employeeId) {
+    @Override
+    @Transactional
+    public void sync(final long warehouseId) {
+        final List<FingerprintSubjectResponse> responses = fingerprintExternalService.getFingerprintSubject(warehouseId);
+        syncFingerprintSubjects(responses);
+    }
+
+    @Override
+    @Transactional
+    public void sync(final long warehouseId, final long internalToolsUserId) {
+        final List<FingerprintSubjectResponse> responses = fingerprintExternalService.getFingerprintSubject(warehouseId, internalToolsUserId);
+        syncFingerprintSubjects(responses);
+    }
+
+    @Override
+    @Transactional
+    public void add(final String employeeId) {
+        final List<FingerprintSubjectResponse> responses = fingerprintExternalService.getFingerprintSubject(employeeId);
+        if (CollectionUtils.isEmpty(responses)) return;
+
+        saveAdhocUser(responses.getFirst().internalToolsUserId());
+        syncFingerprintSubjects(responses);
+    }
+
+    private void saveAdhocUser(final long internalToolsUserId) {
+        final FingerprintAdhocUser adhocUser = new FingerprintAdhocUser();
+        adhocUser.setInternalToolsUserId(internalToolsUserId);
+        fingerprintAdhocUserRepository.save(adhocUser);
+    }
+
+    private void syncFingerprintSubjects(final List<FingerprintSubjectResponse> responses) {
+        if (CollectionUtils.isEmpty(responses)) return;
+
+        final List<FingerprintSubject> subjects = mapToEntities(responses);
+        saveFingerprintSubjects(subjects);
+        registerMemoryDatabaseSync(subjects);
+    }
+
+    private List<FingerprintSubject> mapToEntities(final List<FingerprintSubjectResponse> responses) {
+        return responses.stream()
+                .map(response -> new FingerprintSubject(
+                        response.id(),
+                        response.internalToolsUserId(),
+                        response.templateGroup(),
+                        response.templateVendor(),
+                        response.template()
+                ))
+                .toList();
+    }
+
+    private void saveFingerprintSubjects(final List<FingerprintSubject> subjects) {
+        fingerprintSubjectRepository.saveAll(subjects);
+    }
+
+    private void registerMemoryDatabaseSync(final List<FingerprintSubject> subjects) {
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                syncWithMemoryDatabase(subjects);
+            }
+        });
+    }
+
+    private void syncWithMemoryDatabase(final List<FingerprintSubject> fingerprintSubjects) {
+        if (memoryDatabase.get() == 0) return;
+        for (final FingerprintSubject fingerprintSubject : fingerprintSubjects) {
+            FingerprintSensorEx.DBAdd(memoryDatabase.get(), (int) fingerprintSubject.getId(), fingerprintSubject.getTemplate());
+        }
+    }
+
+    private void restart(final String employeeId, final TemplateGroup templateGroup) {
         state.set(FingerprintState.ENROLL);
+        this.enrollTemplateGroup.set(templateGroup);
         this.employeeId.set(employeeId);
         enrollId.set(0);
     }
 
-    public void handleEnroll(byte[] template) {
-        int currentScanIndex = enrollId.get();
+    public void handleEnroll(final byte[] template) {
+        final int currentScanIndex = enrollId.get();
 
         if (!isTemplateValid(currentScanIndex, template)) {
             return;
         }
 
         storeTemplate(currentScanIndex, template);
-        int nextScanIndex = enrollId.incrementAndGet();
+        final int nextScanIndex = enrollId.incrementAndGet();
 
         if (needsMoreScans(nextScanIndex)) {
             sendEnrollmentStatus(FingerprintEnrollmentStatus.PARTIALLY_ENROLLED, nextScanIndex, new byte[0]);
@@ -286,7 +407,7 @@ public class ZKTecoFingerprintServiceImpl implements FingerprintService {
         completeFingerprintEnrollment(nextScanIndex);
     }
 
-    private boolean isTemplateValid(int currentIndex, byte[] template) {
+    private boolean isTemplateValid(final int currentIndex, final byte[] template) {
         if (currentIndex == 0) {
             return true;
         }
@@ -294,16 +415,16 @@ public class ZKTecoFingerprintServiceImpl implements FingerprintService {
                 registerCandidateTemplates[currentIndex - 1], template) > 0;
     }
 
-    private void storeTemplate(int index, byte[] template) {
+    private void storeTemplate(final int index, final byte[] template) {
         System.arraycopy(template, 0, registerCandidateTemplates[index], 0, TEMPLATE_SIZE);
     }
 
-    private boolean needsMoreScans(int scanIndex) {
+    private boolean needsMoreScans(final int scanIndex) {
         return scanIndex < ENROLLMENT_SCANS_REQUIRED;
     }
 
-    private void completeFingerprintEnrollment(int finalScanIndex) {
-        byte[] mergedTemplate = mergeEnrollmentTemplates();
+    private void completeFingerprintEnrollment(final int finalScanIndex) {
+        final byte[] mergedTemplate = mergeEnrollmentTemplates();
 
         if (mergedTemplate == null) {
             handleEnrollmentFailure();
@@ -314,10 +435,10 @@ public class ZKTecoFingerprintServiceImpl implements FingerprintService {
     }
 
     private byte[] mergeEnrollmentTemplates() {
-        int[] templateLength = new int[]{TEMPLATE_SIZE};
-        byte[] mergedTemplate = new byte[TEMPLATE_SIZE];
+        final int[] templateLength = new int[]{TEMPLATE_SIZE};
+        final byte[] mergedTemplate = new byte[TEMPLATE_SIZE];
 
-        int mergeResult = FingerprintSensorEx.DBMerge(
+        final int mergeResult = FingerprintSensorEx.DBMerge(
                 memoryDatabase.get(),
                 registerCandidateTemplates[0],
                 registerCandidateTemplates[1],
@@ -331,10 +452,10 @@ public class ZKTecoFingerprintServiceImpl implements FingerprintService {
 
     private void handleEnrollmentFailure() {
         sendEnrollmentStatus(FingerprintEnrollmentStatus.FAILED, 0, new byte[0]);
-        restart(employeeId.get());
+        restart(employeeId.get(), enrollTemplateGroup.get());
     }
 
-    private void handleEnrollmentSuccess(int scanIndex, byte[] template) {
+    private void handleEnrollmentSuccess(final int scanIndex, final byte[] template) {
         sendEnrollmentStatus(FingerprintEnrollmentStatus.ENROLLED, scanIndex, template);
         resetEnrollmentState();
     }
@@ -345,27 +466,27 @@ public class ZKTecoFingerprintServiceImpl implements FingerprintService {
         state.set(FingerprintState.NONE);
     }
 
-    private void handleIdentify(byte[] template) {
+    private void handleIdentify(final byte[] template) {
         try {
-            Integer fingerprintId = identifyFingerprintInDatabase(template);
+            final Integer fingerprintId = identifyFingerprintInDatabase(template);
 
             if (fingerprintId == null) {
                 sendIdentificationStatus(FingerprintIdentificationStatus.NOT_FOUND, null);
                 return;
             }
 
-            Long userId = findUserIdByFingerprintId(fingerprintId);
+            final Long userId = findUserIdByFingerprintId(fingerprintId);
             sendIdentificationStatus(FingerprintIdentificationStatus.Ok, userId);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             sendIdentificationStatus(FingerprintIdentificationStatus.ERROR, null);
         }
     }
 
-    private Integer identifyFingerprintInDatabase(byte[] template) {
+    private Integer identifyFingerprintInDatabase(final byte[] template) {
         final int[] fingerprintId = new int[1];
         final int[] matchScore = new int[1];
 
-        int result = FingerprintSensorEx.DBIdentify(
+        final int result = FingerprintSensorEx.DBIdentify(
                 memoryDatabase.get(),
                 template,
                 fingerprintId,
@@ -375,8 +496,8 @@ public class ZKTecoFingerprintServiceImpl implements FingerprintService {
         return result == 0 ? fingerprintId[0] : null;
     }
 
-    private Long findUserIdByFingerprintId(Integer fingerprintId) {
-        FingerprintSubject subject = fingerprintSubjectRepository
+    private Long findUserIdByFingerprintId(final Integer fingerprintId) {
+        final FingerprintSubject subject = fingerprintSubjectRepository
                 .findById(fingerprintId.longValue())
                 .orElseThrow(() -> new BaseException("Fingerprint subject not found for ID: " + fingerprintId));
 

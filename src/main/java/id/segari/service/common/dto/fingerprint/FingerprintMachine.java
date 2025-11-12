@@ -1,3 +1,5 @@
 package id.segari.service.common.dto.fingerprint;
 
-public record FingerprintMachine(long productId, String productName) {}
+import id.segari.service.db.enums.TemplateVendor;
+
+public record FingerprintMachine(long productId, String productName, TemplateVendor vendor) {}

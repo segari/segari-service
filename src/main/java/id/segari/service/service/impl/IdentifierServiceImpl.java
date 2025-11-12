@@ -1,6 +1,5 @@
 package id.segari.service.service.impl;
 
-import id.segari.service.common.dto.identifier.IdentifierResponse;
 import id.segari.service.service.IdentifierService;
 import org.springframework.stereotype.Service;
 
@@ -12,9 +11,9 @@ import java.io.InputStreamReader;
 public class IdentifierServiceImpl implements IdentifierService {
 
     @Override
-    public IdentifierResponse get() {
+    public String get() {
         try {
-            if (!isWindows()) return new IdentifierResponse(null);
+            if (!isWindows()) return null;
             final Process process = getProcess();
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
                 String line;
@@ -22,16 +21,15 @@ public class IdentifierServiceImpl implements IdentifierService {
                     if (line.trim().startsWith("MachineGuid")) {
                         String[] parts = line.trim().split("\\s+");
                         if (parts.length >= 3) {
-                            String guid = parts[parts.length - 1];
-                            return new IdentifierResponse(guid);
+                            return parts[parts.length - 1];
                         }
                     }
                 }
             }
             process.waitFor();
-            return new IdentifierResponse(null);
+            return null;
         } catch (Exception e) {
-            return new IdentifierResponse(null);
+            return null;
         }
     }
 
