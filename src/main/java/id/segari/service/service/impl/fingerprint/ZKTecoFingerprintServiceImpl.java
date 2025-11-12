@@ -13,6 +13,7 @@ import id.segari.service.exception.BaseException;
 import id.segari.service.service.FingerprintExternalService;
 import id.segari.service.service.FingerprintService;
 import id.segari.service.service.IdentifierService;
+import jakarta.annotation.PreDestroy;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -282,6 +283,11 @@ public class ZKTecoFingerprintServiceImpl implements FingerprintService {
     @Override
     public void disconnect() {
         freeSensor();
+    }
+
+    @PreDestroy
+    public void shutdown() {
+        disconnect();
     }
 
     @Override

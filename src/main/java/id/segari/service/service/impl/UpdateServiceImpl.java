@@ -10,10 +10,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClient;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -30,7 +29,7 @@ import java.util.zip.ZipInputStream;
 public class UpdateServiceImpl implements UpdateService {
     private static final Logger logger = LoggerFactory.getLogger(UpdateServiceImpl.class);
 
-    private final RestTemplate restTemplate;
+    private final RestClient restClient;
 
     @Value("${app.version:1.0.0}")
     private String currentVersion;
@@ -46,8 +45,8 @@ public class UpdateServiceImpl implements UpdateService {
     private final Path downloadedUpdatePath;
     private final Path extractedUpdatePath;
 
-    public UpdateServiceImpl(RestTemplate restTemplate) {
-        this.restTemplate = restTemplate;
+    public UpdateServiceImpl(RestClient restClient) {
+        this.restClient = restClient;
         this.updateDirectory = Paths.get(System.getProperty("user.home"), ".segari-service", "updates");
         this.downloadedUpdatePath = updateDirectory.resolve("update.zip");
         this.extractedUpdatePath = updateDirectory.resolve("extracted");
@@ -67,12 +66,10 @@ public class UpdateServiceImpl implements UpdateService {
         }
 
         try {
-            SegariResponse<AppVersion> response = restTemplate.exchange(
-                updateServerUrl + "/v1/warehouse-printers/printer-middleware/versions",
-                HttpMethod.GET,
-                null,
-                new ParameterizedTypeReference<SegariResponse<AppVersion>>() {}
-            ).getBody();
+            SegariResponse<AppVersion> response = restClient.get()
+                .uri(updateServerUrl + "/v1/warehouse-printers/printer-middleware/versions")
+                .retrieve()
+                .body(new ParameterizedTypeReference<SegariResponse<AppVersion>>() {});
 
             if (response != null && response.data() != null) {
                 return new VersionInfo(currentVersion, response.data().version(), isUpdateAvailable(currentVersion, response.data().version()), response.data().url(), response.message());
