@@ -204,11 +204,16 @@ public class ZKTecoFingerprintServiceImpl implements FingerprintService {
             initializeFingerprintSensor();
             openDevice();
             initializeDatabase();
+            loadStoredFingerprintsToMemory();
             startFingerprintListener();
         } catch (Exception e) {
             freeSensor();
             throw new BaseException(e.getMessage());
         }
+    }
+
+    private void loadStoredFingerprintsToMemory() {
+        syncWithMemoryDatabase(fingerprintSubjectRepository.findAll());
     }
 
     private void initializeFingerprintSensor() {
@@ -375,7 +380,7 @@ public class ZKTecoFingerprintServiceImpl implements FingerprintService {
         });
     }
 
-    private void syncWithMemoryDatabase(final List<FingerprintSubject> fingerprintSubjects) {
+    private void syncWithMemoryDatabase(final Iterable<FingerprintSubject> fingerprintSubjects) {
         if (memoryDatabase.get() == 0) return;
         for (final FingerprintSubject fingerprintSubject : fingerprintSubjects) {
             FingerprintSensorEx.DBAdd(memoryDatabase.get(), (int) fingerprintSubject.getId(), fingerprintSubject.getTemplate());
