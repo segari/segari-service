@@ -47,6 +47,7 @@ public class ZKTecoFingerprintServiceImpl implements FingerprintService {
     // State
     private final AtomicLong device = new AtomicLong(UNINITIALIZED);
     private final AtomicLong memoryDatabase = new AtomicLong(UNINITIALIZED);
+    private final AtomicLong connectedWarehouseId = new AtomicLong(0L);
     private final AtomicReference<String> employeeId = new AtomicReference<>(null);
     private final AtomicReference<FingerprintState> state = new AtomicReference<>(FingerprintState.NONE);
     private final AtomicInteger enrollId = new AtomicInteger(1);
@@ -199,18 +200,27 @@ public class ZKTecoFingerprintServiceImpl implements FingerprintService {
     }
 
     @Override
-    public void connect() {
+    public void connect(long warehouseId) {
         try {
             ensureDeviceNotConnected();
             initializeFingerprintSensor();
             openDevice();
             initializeDatabase();
             loadStoredFingerprintsToMemory();
+            resetConnectedState(warehouseId);
             startFingerprintListener();
         } catch (Exception e) {
             freeSensor();
             throw new BaseException(e.getMessage());
         }
+    }
+
+    private void resetConnectedState(long warehouseId) {
+        connectedWarehouseId.set(warehouseId);
+        employeeId.set(null);
+        state.set(FingerprintState.NONE);
+        enrollId.set(1);
+        enrollTemplateGroup.set(null);
     }
 
     private void loadStoredFingerprintsToMemory() {
@@ -279,10 +289,19 @@ public class ZKTecoFingerprintServiceImpl implements FingerprintService {
         }
     }
 
+    private void resetDisconnectedState() {
+        connectedWarehouseId.set(0);
+        employeeId.set(null);
+        state.set(FingerprintState.NONE);
+        enrollId.set(1);
+        enrollTemplateGroup.set(null);
+    }
+
 
     @Override
     public void disconnect() {
         freeSensor();
+        resetDisconnectedState();
     }
 
     @PreDestroy
@@ -294,7 +313,7 @@ public class ZKTecoFingerprintServiceImpl implements FingerprintService {
     public FingerprintStatusResponse getFingerprintStatus() {
         final FingerprintMachine fingerprintMachine = getFingerprintMachine();
         final FingerprintMachineStatus status = getFingerprintMachineStatus(fingerprintMachine);
-        return new FingerprintStatusResponse(status, fingerprintMachine, identifierService.get());
+        return new FingerprintStatusResponse(status, fingerprintMachine, identifierService.get(), connectedWarehouseId.get());
     }
 
     private FingerprintMachineStatus getFingerprintMachineStatus(final FingerprintMachine fingerprintMachine) {
@@ -321,6 +340,11 @@ public class ZKTecoFingerprintServiceImpl implements FingerprintService {
     public FingerprintIdentificationResponse initIdentification() {
         state.set(FingerprintState.IDENTIFICATION);
         return new FingerprintIdentificationResponse(FingerprintIdentificationStatus.INITIALIZED, null);
+    }
+
+    @Override
+    public void initNone() {
+        state.set(FingerprintState.NONE);
     }
 
     @Override

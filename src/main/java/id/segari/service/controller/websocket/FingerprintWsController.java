@@ -40,4 +40,13 @@ public class FingerprintWsController {
     public FingerprintIdentificationResponse handleFingerprintIdentify() {
         return fingerprintService.initIdentification();
     }
+
+    /**
+     * Handle fingerprint none requests
+     * Client sends to: /app/fingerprint/none
+     */
+    @MessageMapping(NONE)
+    public void handleNone() {
+        fingerprintService.initNone();
+    }
 }

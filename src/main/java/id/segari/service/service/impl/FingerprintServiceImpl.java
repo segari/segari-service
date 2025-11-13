@@ -38,10 +38,10 @@ public class FingerprintServiceImpl implements FingerprintService {
     }
 
     @Override
-    public void connect() {
+    public void connect(long warehouseId) {
         acquireLock();
         try {
-            zkTecoImpl.connect();
+            zkTecoImpl.connect(warehouseId);
         } finally {
             lock.unlock();
         }
@@ -82,6 +82,16 @@ public class FingerprintServiceImpl implements FingerprintService {
         acquireLock();
         try {
             return zkTecoImpl.initIdentification();
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    @Override
+    public void initNone() {
+        acquireLock();
+        try {
+            zkTecoImpl.initNone();
         } finally {
             lock.unlock();
         }

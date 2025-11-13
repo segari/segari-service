@@ -4,10 +4,7 @@ import id.segari.service.common.InternalResponseCode;
 import id.segari.service.common.dto.fingerprint.FingerprintStatusResponse;
 import id.segari.service.common.response.SuccessResponse;
 import id.segari.service.service.FingerprintService;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/v1/fingerprint")
@@ -24,9 +21,9 @@ public class FingerprintController {
         return new SuccessResponse<>(InternalResponseCode.SUCCESS, fingerprintService.getFingerprintStatus());
     }
 
-    @PostMapping("/connect")
-    public SuccessResponse<Boolean> connect() {
-        fingerprintService.connect();
+    @PostMapping("/connect/{warehouseId}")
+    public SuccessResponse<Boolean> connect(@PathVariable long warehouseId) {
+        fingerprintService.connect(warehouseId);
         return new SuccessResponse<>(InternalResponseCode.SUCCESS, true);
     }
 

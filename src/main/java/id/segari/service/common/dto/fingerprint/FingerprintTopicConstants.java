@@ -6,4 +6,6 @@ public class FingerprintTopicConstants {
 
     public static final String IDENTIFY = "/fingerprint/identify";
     public static final String IDENTIFY_TOPIC = "/topic" + IDENTIFY;
+
+    public static final String NONE = "/fingerprint/none";
 }
