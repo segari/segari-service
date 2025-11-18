@@ -351,6 +351,7 @@ public class ZKTecoFingerprintServiceImpl implements FingerprintService {
     @Transactional
     public void sync(final long warehouseId) {
         final List<FingerprintSubjectResponse> responses = fingerprintExternalService.getFingerprintSubject(warehouseId);
+        if (!responses.isEmpty()) fingerprintSubjectRepository.deleteAll();
         syncFingerprintSubjects(responses);
     }
 
