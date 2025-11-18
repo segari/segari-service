@@ -349,23 +349,23 @@ public class ZKTecoFingerprintServiceImpl implements FingerprintService {
 
     @Override
     @Transactional
-    public void sync(final long warehouseId) {
-        final List<FingerprintSubjectResponse> responses = fingerprintExternalService.getFingerprintSubject(warehouseId);
+    public void sync(final long warehouseId, String token) {
+        final List<FingerprintSubjectResponse> responses = fingerprintExternalService.getFingerprintSubject(warehouseId, token);
         if (!responses.isEmpty()) fingerprintSubjectRepository.deleteAll();
         syncFingerprintSubjects(responses);
     }
 
     @Override
     @Transactional
-    public void sync(final long warehouseId, final long internalToolsUserId) {
-        final List<FingerprintSubjectResponse> responses = fingerprintExternalService.getFingerprintSubject(warehouseId, internalToolsUserId);
+    public void sync(final long warehouseId, final long internalToolsUserId, String token) {
+        final List<FingerprintSubjectResponse> responses = fingerprintExternalService.getFingerprintSubject(warehouseId, internalToolsUserId, token);
         syncFingerprintSubjects(responses);
     }
 
     @Override
     @Transactional
-    public void add(final String employeeId, boolean adhoc) {
-        final List<FingerprintSubjectResponse> responses = fingerprintExternalService.getFingerprintSubject(employeeId);
+    public void add(final String employeeId, boolean adhoc, String token) {
+        final List<FingerprintSubjectResponse> responses = fingerprintExternalService.getFingerprintSubject(employeeId, token);
         if (CollectionUtils.isEmpty(responses)) return;
 
         if (adhoc) saveAdhocUser(responses.getFirst().internalToolsUserId());

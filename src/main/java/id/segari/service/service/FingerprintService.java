@@ -12,7 +12,7 @@ public interface FingerprintService {
     FingerprintEnrollmentResponse initEnrollment(String employeeId, TemplateGroup templateGroup);
     FingerprintIdentificationResponse initIdentification();
     void initNone();
-    void sync(long warehouseId);
-    void sync(long warehouseId, long internalToolsUserId);
-    void add(String employeeId, boolean adhoc);
+    void sync(long warehouseId, String token);
+    void sync(long warehouseId, long internalToolsUserId, String token);
+    void add(String employeeId, boolean adhoc, String token);
 }
