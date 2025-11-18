@@ -363,11 +363,11 @@ public class ZKTecoFingerprintServiceImpl implements FingerprintService {
 
     @Override
     @Transactional
-    public void add(final String employeeId) {
+    public void add(final String employeeId, boolean adhoc) {
         final List<FingerprintSubjectResponse> responses = fingerprintExternalService.getFingerprintSubject(employeeId);
         if (CollectionUtils.isEmpty(responses)) return;
 
-        saveAdhocUser(responses.getFirst().internalToolsUserId());
+        if (adhoc) saveAdhocUser(responses.getFirst().internalToolsUserId());
         syncFingerprintSubjects(responses);
     }
 
@@ -511,7 +511,7 @@ public class ZKTecoFingerprintServiceImpl implements FingerprintService {
             }
 
             final Long userId = findUserIdByFingerprintId(fingerprintId);
-            sendIdentificationStatus(FingerprintIdentificationStatus.Ok, userId);
+            sendIdentificationStatus(FingerprintIdentificationStatus.OK, userId);
         } catch (final Exception e) {
             sendIdentificationStatus(FingerprintIdentificationStatus.ERROR, null);
         }

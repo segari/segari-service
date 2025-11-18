@@ -2,7 +2,7 @@ package id.segari.service.common.dto.fingerprint;
 
 public enum FingerprintIdentificationStatus {
     INITIALIZED,
-    Ok,
+    OK,
     NOT_FOUND,
     ERROR
 }

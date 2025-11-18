@@ -14,5 +14,5 @@ public interface FingerprintService {
     void initNone();
     void sync(long warehouseId);
     void sync(long warehouseId, long internalToolsUserId);
-    void add(String employeeId);
+    void add(String employeeId, boolean adhoc);
 }

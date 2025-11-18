@@ -118,10 +118,10 @@ public class FingerprintServiceImpl implements FingerprintService {
     }
 
     @Override
-    public void add(final String employeeId) {
+    public void add(final String employeeId, boolean adhoc) {
         acquireLock();
         try {
-            zkTecoImpl.add(employeeId);
+            zkTecoImpl.add(employeeId, adhoc);
         } finally {
             lock.unlock();
         }

@@ -32,4 +32,22 @@ public class FingerprintController {
         fingerprintService.disconnect();
         return new SuccessResponse<>(InternalResponseCode.SUCCESS, true);
     }
+
+    @PostMapping("/sync/{warehouseId}")
+    public SuccessResponse<Boolean> sync(@PathVariable long warehouseId) {
+        fingerprintService.sync(warehouseId);
+        return new SuccessResponse<>(InternalResponseCode.SUCCESS, true);
+    }
+
+    @PostMapping("/sync/{warehouseId}/ituid/{internalToolsId}")
+    public SuccessResponse<Boolean> sync(@PathVariable long warehouseId, @PathVariable long internalToolsId) {
+        fingerprintService.sync(warehouseId, internalToolsId);
+        return new SuccessResponse<>(InternalResponseCode.SUCCESS, true);
+    }
+
+    @PostMapping("/add/{employeeId}/adhoc/{adhoc}")
+    public SuccessResponse<Boolean> add(@PathVariable String employeeId, @PathVariable boolean adhoc) {
+        fingerprintService.add(employeeId, adhoc);
+        return new SuccessResponse<>(InternalResponseCode.SUCCESS, true);
+    }
 }
