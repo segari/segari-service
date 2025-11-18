@@ -482,7 +482,9 @@ public class ZKTecoFingerprintServiceImpl implements FingerprintService {
                 templateLength
         );
 
-        return mergeResult == 0 ? mergedTemplate : null;
+        final byte[] result = new byte[templateLength[0]];
+        System.arraycopy(mergedTemplate, 0, result, 0, result.length);
+        return mergeResult == 0 ? result : null;
     }
 
     private void handleEnrollmentFailure() {
