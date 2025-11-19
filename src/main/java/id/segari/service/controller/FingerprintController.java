@@ -26,7 +26,7 @@ public class FingerprintController {
 
     @PostMapping("/connect")
     public SuccessResponse<Boolean> connect(@RequestBody @Valid FingerprintConnectRequest request) {
-        fingerprintService.connect(request.warehouseId());
+        fingerprintService.connect(request.warehouseId(), request.sessionId());
         return new SuccessResponse<>(InternalResponseCode.SUCCESS, true);
     }
 

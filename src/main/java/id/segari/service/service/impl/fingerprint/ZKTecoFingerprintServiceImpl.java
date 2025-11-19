@@ -201,7 +201,7 @@ public class ZKTecoFingerprintServiceImpl implements FingerprintService {
     }
 
     @Override
-    public void connect(long warehouseId) {
+    public void connect(long warehouseId, String sessionId) {
         try {
             ensureDeviceNotConnected();
             initializeFingerprintSensor();
@@ -210,10 +210,15 @@ public class ZKTecoFingerprintServiceImpl implements FingerprintService {
             loadStoredFingerprintsToMemory();
             resetConnectedState(warehouseId);
             startFingerprintListener();
+            saveSession(sessionId);
         } catch (Exception e) {
             freeSensor();
             throw new BaseException(e.getMessage());
         }
+    }
+
+    private void saveSession(String sessionId) {
+        this.sessionId.set(sessionId);
     }
 
     private void resetConnectedState(long warehouseId) {
@@ -303,6 +308,11 @@ public class ZKTecoFingerprintServiceImpl implements FingerprintService {
     public void disconnect() {
         freeSensor();
         resetDisconnectedState();
+        removeSessionId();
+    }
+
+    private void removeSessionId() {
+        sessionId.set(null);
     }
 
     @PreDestroy
@@ -351,7 +361,7 @@ public class ZKTecoFingerprintServiceImpl implements FingerprintService {
     @Override
     @Transactional
     public void sync(final long warehouseId) {
-        final List<FingerprintSubjectResponse> responses = fingerprintSubjectExternalService.getFingerprintSubject(warehouseId);
+        final List<FingerprintSubjectResponse> responses = fingerprintSubjectExternalService.getFingerprintSubject(warehouseId, identifierService.get(), sessionId.get());
         if (!responses.isEmpty()) fingerprintSubjectRepository.deleteAll();
         syncFingerprintSubjects(responses);
     }
@@ -359,14 +369,14 @@ public class ZKTecoFingerprintServiceImpl implements FingerprintService {
     @Override
     @Transactional
     public void sync(final long warehouseId, final long internalToolsUserId) {
-        final List<FingerprintSubjectResponse> responses = fingerprintSubjectExternalService.getFingerprintSubject(warehouseId, internalToolsUserId);
+        final List<FingerprintSubjectResponse> responses = fingerprintSubjectExternalService.getFingerprintSubject(warehouseId, internalToolsUserId, identifierService.get(), sessionId.get());
         syncFingerprintSubjects(responses);
     }
 
     @Override
     @Transactional
     public void add(final String employeeId, boolean adhoc) {
-        final List<FingerprintSubjectResponse> responses = fingerprintSubjectExternalService.getFingerprintSubject(employeeId);
+        final List<FingerprintSubjectResponse> responses = fingerprintSubjectExternalService.getFingerprintSubject(employeeId, identifierService.get(), sessionId.get());
         if (CollectionUtils.isEmpty(responses)) return;
 
         if (adhoc) saveAdhocUser(responses.getFirst().internalToolsUserId());

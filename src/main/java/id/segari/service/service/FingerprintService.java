@@ -6,7 +6,7 @@ import id.segari.service.common.dto.fingerprint.FingerprintStatusResponse;
 import id.segari.service.db.enums.TemplateGroup;
 
 public interface FingerprintService {
-    void connect(long warehouseId);
+    void connect(long warehouseId, String sessionId);
     void disconnect();
     FingerprintStatusResponse getFingerprintStatus();
     FingerprintEnrollmentResponse initEnrollment(String employeeId, TemplateGroup templateGroup);
