@@ -135,30 +135,6 @@
 
 	<!-- Profiles for different build types -->
 	<profiles>
-			<!-- AOT (Ahead-of-Time) compilation profile for faster startup -->
-			<profile>
-				<id>aot</id>
-				<build>
-					<plugins>
-						<plugin>
-							<groupId>org.springframework.boot</groupId>
-							<artifactId>spring-boot-maven-plugin</artifactId>
-							<configuration>
-								<jvmArguments>--enable-native-access=ALL-UNNAMED</jvmArguments>
-							</configuration>
-							<executions>
-								<execution>
-									<id>process-aot</id>
-									<goals>
-										<goal>process-aot</goal>
-									</goals>
-								</execution>
-							</executions>
-						</plugin>
-					</plugins>
-				</build>
-			</profile>
-
 			<!-- Windows executable packaging profile -->
 			<profile>
 				<id>windows-exe</id>
