@@ -10,7 +10,7 @@ import id.segari.service.db.enums.TemplateVendor;
 import id.segari.service.db.repository.FingerprintAdhocUserRepository;
 import id.segari.service.db.repository.FingerprintSubjectRepository;
 import id.segari.service.exception.BaseException;
-import id.segari.service.service.FingerprintExternalService;
+import id.segari.service.service.FingerprintSubjectExternalService;
 import id.segari.service.service.FingerprintService;
 import id.segari.service.service.IdentifierService;
 import jakarta.annotation.PreDestroy;
@@ -45,6 +45,7 @@ public class ZKTecoFingerprintServiceImpl implements FingerprintService {
     private static final int UNINITIALIZED = 0;
 
     // State
+    private final AtomicReference<String> sessionId = new AtomicReference<>(null);
     private final AtomicLong device = new AtomicLong(UNINITIALIZED);
     private final AtomicLong memoryDatabase = new AtomicLong(UNINITIALIZED);
     private final AtomicLong connectedWarehouseId = new AtomicLong(0L);
@@ -59,7 +60,7 @@ public class ZKTecoFingerprintServiceImpl implements FingerprintService {
     private final FingerprintAdhocUserRepository fingerprintAdhocUserRepository;
 
     private final IdentifierService identifierService;
-    private final FingerprintExternalService fingerprintExternalService;
+    private final FingerprintSubjectExternalService fingerprintSubjectExternalService;
     private Thread workerThread;
 
     public ZKTecoFingerprintServiceImpl(
@@ -67,13 +68,13 @@ public class ZKTecoFingerprintServiceImpl implements FingerprintService {
             FingerprintSubjectRepository fingerprintSubjectRepository,
             FingerprintAdhocUserRepository fingerprintAdhocUserRepository,
             IdentifierService identifierService,
-            FingerprintExternalService fingerprintExternalService
+            FingerprintSubjectExternalService fingerprintSubjectExternalService
     ) {
         this.simpMessagingTemplate = simpMessagingTemplate;
         this.fingerprintSubjectRepository = fingerprintSubjectRepository;
         this.fingerprintAdhocUserRepository = fingerprintAdhocUserRepository;
         this.identifierService = identifierService;
-        this.fingerprintExternalService = fingerprintExternalService;
+        this.fingerprintSubjectExternalService = fingerprintSubjectExternalService;
     }
 
     private FingerprintMachine getFingerprintMachine() {
@@ -196,7 +197,7 @@ public class ZKTecoFingerprintServiceImpl implements FingerprintService {
 
     private void sendIdentificationStatus(final FingerprintIdentificationStatus status, final Long userId) {
         simpMessagingTemplate.convertAndSend(IDENTIFY_TOPIC,
-                new FingerprintIdentificationResponse(status, userId));
+                new FingerprintIdentificationResponse(status, userId, sessionId.get()));
     }
 
     @Override
@@ -339,7 +340,7 @@ public class ZKTecoFingerprintServiceImpl implements FingerprintService {
     @Override
     public FingerprintIdentificationResponse initIdentification() {
         state.set(FingerprintState.IDENTIFICATION);
-        return new FingerprintIdentificationResponse(FingerprintIdentificationStatus.INITIALIZED, null);
+        return new FingerprintIdentificationResponse(FingerprintIdentificationStatus.INITIALIZED, null, sessionId.get());
     }
 
     @Override
@@ -349,23 +350,23 @@ public class ZKTecoFingerprintServiceImpl implements FingerprintService {
 
     @Override
     @Transactional
-    public void sync(final long warehouseId, String token) {
-        final List<FingerprintSubjectResponse> responses = fingerprintExternalService.getFingerprintSubject(warehouseId, token);
+    public void sync(final long warehouseId) {
+        final List<FingerprintSubjectResponse> responses = fingerprintSubjectExternalService.getFingerprintSubject(warehouseId);
         if (!responses.isEmpty()) fingerprintSubjectRepository.deleteAll();
         syncFingerprintSubjects(responses);
     }
 
     @Override
     @Transactional
-    public void sync(final long warehouseId, final long internalToolsUserId, String token) {
-        final List<FingerprintSubjectResponse> responses = fingerprintExternalService.getFingerprintSubject(warehouseId, internalToolsUserId, token);
+    public void sync(final long warehouseId, final long internalToolsUserId) {
+        final List<FingerprintSubjectResponse> responses = fingerprintSubjectExternalService.getFingerprintSubject(warehouseId, internalToolsUserId);
         syncFingerprintSubjects(responses);
     }
 
     @Override
     @Transactional
-    public void add(final String employeeId, boolean adhoc, String token) {
-        final List<FingerprintSubjectResponse> responses = fingerprintExternalService.getFingerprintSubject(employeeId, token);
+    public void add(final String employeeId, boolean adhoc) {
+        final List<FingerprintSubjectResponse> responses = fingerprintSubjectExternalService.getFingerprintSubject(employeeId);
         if (CollectionUtils.isEmpty(responses)) return;
 
         if (adhoc) saveAdhocUser(responses.getFirst().internalToolsUserId());

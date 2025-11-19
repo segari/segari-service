@@ -2,7 +2,7 @@ package id.segari.service.service.impl.fingerprint;
 
 import id.segari.service.common.dto.external.SegariResponse;
 import id.segari.service.common.dto.fingerprint.FingerprintSubjectResponse;
-import id.segari.service.service.FingerprintExternalService;
+import id.segari.service.service.FingerprintSubjectExternalService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -13,9 +13,9 @@ import org.springframework.web.client.RestClient;
 import java.util.List;
 
 @Service
-public class FingerprintExternalServiceImpl implements FingerprintExternalService {
+public class FingerprintSubjectExternalServiceImpl implements FingerprintSubjectExternalService {
 
-    private static final Logger log = LoggerFactory.getLogger(FingerprintExternalServiceImpl.class);
+    private static final Logger log = LoggerFactory.getLogger(FingerprintSubjectExternalServiceImpl.class);
     private static final String BASE_PATH = "/v1/attendances/fingerprints/subjects";
     private static final ParameterizedTypeReference<SegariResponse<List<FingerprintSubjectResponse>>> RESPONSE_TYPE =
             new ParameterizedTypeReference<>() {};
@@ -25,27 +25,27 @@ public class FingerprintExternalServiceImpl implements FingerprintExternalServic
     @Value("${segari.backend.endpoint}")
     private final String backendEndpoint;
 
-    public FingerprintExternalServiceImpl(RestClient restClient, @Value("${segari.backend.endpoint}") String backendEndpoint) {
+    public FingerprintSubjectExternalServiceImpl(RestClient restClient, @Value("${segari.backend.endpoint}") String backendEndpoint) {
         this.restClient = restClient;
         this.backendEndpoint = backendEndpoint;
     }
 
     @Override
-    public List<FingerprintSubjectResponse> getFingerprintSubject(final long warehouseId, String token) {
+    public List<FingerprintSubjectResponse> getFingerprintSubject(final long warehouseId) {
         final String url = buildWarehouseUrl(warehouseId);
-        return fetchFingerprintSubjects(url, "warehouse: " + warehouseId, token);
+        return fetchFingerprintSubjects(url, "warehouse: " + warehouseId);
     }
 
     @Override
-    public List<FingerprintSubjectResponse> getFingerprintSubject(final long warehouseId, final long latestInternalToolsId, String token) {
+    public List<FingerprintSubjectResponse> getFingerprintSubject(final long warehouseId, final long latestInternalToolsId) {
         final String url = buildWarehouseWithUserUrl(warehouseId, latestInternalToolsId);
-        return fetchFingerprintSubjects(url, "warehouse: " + warehouseId + ", internal tools user: " + latestInternalToolsId, token);
+        return fetchFingerprintSubjects(url, "warehouse: " + warehouseId + ", internal tools user: " + latestInternalToolsId);
     }
 
     @Override
-    public List<FingerprintSubjectResponse> getFingerprintSubject(final String employeeId, String token) {
+    public List<FingerprintSubjectResponse> getFingerprintSubject(final String employeeId) {
         final String url = buildEmployeeUrl(employeeId);
-        return fetchFingerprintSubjects(url, "employee: " + employeeId, token);
+        return fetchFingerprintSubjects(url, "employee: " + employeeId);
     }
 
     private String buildWarehouseUrl(final long warehouseId) {
@@ -60,10 +60,10 @@ public class FingerprintExternalServiceImpl implements FingerprintExternalServic
         return backendEndpoint + BASE_PATH + "/employees/" + employeeId;
     }
 
-    private List<FingerprintSubjectResponse> fetchFingerprintSubjects(final String url, final String context, final String token) {
+    private List<FingerprintSubjectResponse> fetchFingerprintSubjects(final String url, final String context) {
         try {
             log.debug("Fetching fingerprint subjects for {}", context);
-            final SegariResponse<List<FingerprintSubjectResponse>> response = callApi(url, token);
+            final SegariResponse<List<FingerprintSubjectResponse>> response = callApi(url);
             return extractDataFromResponse(response, context);
         } catch (Exception e) {
             log.error("Error fetching fingerprint subjects for {}", context, e);
@@ -71,10 +71,9 @@ public class FingerprintExternalServiceImpl implements FingerprintExternalServic
         }
     }
 
-    private SegariResponse<List<FingerprintSubjectResponse>> callApi(final String url, final String token) {
+    private SegariResponse<List<FingerprintSubjectResponse>> callApi(final String url) {
         return restClient.get()
                 .uri(url)
-                .header("Authorization", "Bearer " + token)
                 .retrieve()
                 .body(RESPONSE_TYPE);
     }

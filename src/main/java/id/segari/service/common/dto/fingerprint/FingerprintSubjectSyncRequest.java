@@ -1,4 +1,7 @@
 package id.segari.service.common.dto.fingerprint;
 
-public record FingerprintSubjectSyncRequest(long warehouseId, String token) {
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+
+public record FingerprintSubjectSyncRequest(@NotNull Long warehouseId) {
 }

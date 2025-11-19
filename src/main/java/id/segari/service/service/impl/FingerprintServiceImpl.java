@@ -98,30 +98,30 @@ public class FingerprintServiceImpl implements FingerprintService {
     }
 
     @Override
-    public void sync(final long warehouseId, String token) {
+    public void sync(final long warehouseId) {
         acquireLock();
         try {
-            zkTecoImpl.sync(warehouseId, "");
+            zkTecoImpl.sync(warehouseId);
         } finally {
             lock.unlock();
         }
     }
 
     @Override
-    public void sync(final long warehouseId, final long internalToolsUserId, String token) {
+    public void sync(final long warehouseId, final long internalToolsUserId) {
         acquireLock();
         try {
-            zkTecoImpl.sync(warehouseId, internalToolsUserId, "");
+            zkTecoImpl.sync(warehouseId, internalToolsUserId);
         } finally {
             lock.unlock();
         }
     }
 
     @Override
-    public void add(final String employeeId, boolean adhoc, String token) {
+    public void add(final String employeeId, boolean adhoc) {
         acquireLock();
         try {
-            zkTecoImpl.add(employeeId, adhoc, "");
+            zkTecoImpl.add(employeeId, adhoc);
         } finally {
             lock.unlock();
         }

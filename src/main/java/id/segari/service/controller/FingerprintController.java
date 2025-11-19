@@ -1,10 +1,7 @@
 package id.segari.service.controller;
 
 import id.segari.service.common.InternalResponseCode;
-import id.segari.service.common.dto.fingerprint.FingerprintStatusResponse;
-import id.segari.service.common.dto.fingerprint.FingerprintSubjectAdditionRequest;
-import id.segari.service.common.dto.fingerprint.FingerprintSubjectPartialSyncRequest;
-import id.segari.service.common.dto.fingerprint.FingerprintSubjectSyncRequest;
+import id.segari.service.common.dto.fingerprint.*;
 import id.segari.service.common.response.SuccessResponse;
 import id.segari.service.service.FingerprintService;
 import jakarta.validation.Valid;
@@ -27,9 +24,9 @@ public class FingerprintController {
         return new SuccessResponse<>(InternalResponseCode.SUCCESS, fingerprintService.getFingerprintStatus());
     }
 
-    @PostMapping("/connect/{warehouseId}")
-    public SuccessResponse<Boolean> connect(@PathVariable long warehouseId) {
-        fingerprintService.connect(warehouseId);
+    @PostMapping("/connect")
+    public SuccessResponse<Boolean> connect(@RequestBody @Valid FingerprintConnectRequest request) {
+        fingerprintService.connect(request.warehouseId());
         return new SuccessResponse<>(InternalResponseCode.SUCCESS, true);
     }
 
@@ -41,19 +38,19 @@ public class FingerprintController {
 
     @PostMapping("/subject/sync")
     public SuccessResponse<Boolean> sync(@RequestBody @Valid FingerprintSubjectSyncRequest request) {
-        fingerprintService.sync(request.warehouseId(),  request.token());
+        fingerprintService.sync(request.warehouseId());
         return new SuccessResponse<>(InternalResponseCode.SUCCESS, true);
     }
 
     @PostMapping("/subject/partial-sync")
     public SuccessResponse<Boolean> partialSync(@RequestBody @Valid FingerprintSubjectPartialSyncRequest request) {
-        fingerprintService.sync(request.warehouseId(), request.internalToolsUserId(),  request.token());
+        fingerprintService.sync(request.warehouseId(), request.internalToolsUserId());
         return new SuccessResponse<>(InternalResponseCode.SUCCESS, true);
     }
 
     @PostMapping("/subject/add")
     public SuccessResponse<Boolean> add(@RequestBody @Valid FingerprintSubjectAdditionRequest request) {
-        fingerprintService.add(request.employeeId(), request.adhoc(), request.token());
+        fingerprintService.add(request.employeeId(), request.adhoc());
         return new SuccessResponse<>(InternalResponseCode.SUCCESS, true);
     }
 }
