@@ -13,6 +13,5 @@ public interface FingerprintService {
     FingerprintIdentificationResponse initIdentification();
     void initNone();
     void sync(long warehouseId);
-    void sync(long warehouseId, long internalToolsUserId);
     void add(String employeeId, boolean adhoc);
 }

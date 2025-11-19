@@ -40,13 +40,12 @@ public class FingerprintSubjectExternalServiceImpl implements FingerprintSubject
     }
 
     @Override
-    public List<FingerprintSubjectResponse> getFingerprintSubject(final long warehouseId,
-                                                                   final long internalToolsUserId,
-                                                                   final String deviceId,
-                                                                   final String sessionId) {
-        final String url = buildWarehouseWithUserUrl(warehouseId, internalToolsUserId, deviceId, sessionId);
+    public List<FingerprintSubjectResponse> getFingerprintSubject(final List<Long> internalToolsUserIds,
+                                                                  final String deviceId,
+                                                                  final String sessionId) {
+        final String url = buildInternalToolsUserIdsUrl(internalToolsUserIds, deviceId, sessionId);
         return fetchFingerprintSubjects(url,
-                "warehouse: " + warehouseId + ", internal tools user: " + internalToolsUserId +
+                "internal tools user ids: " + internalToolsUserIds +
                 ", device: " + deviceId + ", session: " + sessionId);
     }
 
@@ -67,14 +66,12 @@ public class FingerprintSubjectExternalServiceImpl implements FingerprintSubject
                 .toUriString();
     }
 
-    private String buildWarehouseWithUserUrl(final long warehouseId,
-                                              final long internalToolsUserId,
-                                              final String deviceId,
-                                              final String sessionId) {
+    private String buildInternalToolsUserIdsUrl(final List<Long> internalToolsUserIds,
+                                                final String deviceId,
+                                                final String sessionId) {
         return UriComponentsBuilder.fromUriString(backendEndpoint)
                 .path(BASE_PATH + "/warehouses/itus")
-                .queryParam("warehouseId", warehouseId)
-                .queryParam("internalToolsUserId", internalToolsUserId)
+                .queryParam("internalToolsUserIds", internalToolsUserIds)
                 .queryParam("deviceId", deviceId)
                 .queryParam("sessionId", sessionId)
                 .toUriString();

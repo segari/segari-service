@@ -10,8 +10,8 @@ import id.segari.service.db.enums.TemplateVendor;
 import id.segari.service.db.repository.FingerprintAdhocUserRepository;
 import id.segari.service.db.repository.FingerprintSubjectRepository;
 import id.segari.service.exception.BaseException;
-import id.segari.service.service.FingerprintSubjectExternalService;
 import id.segari.service.service.FingerprintService;
+import id.segari.service.service.FingerprintSubjectExternalService;
 import id.segari.service.service.IdentifierService;
 import jakarta.annotation.PreDestroy;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -22,12 +22,11 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import org.springframework.util.CollectionUtils;
 import org.usb4java.*;
 
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.StreamSupport;
 
 import static id.segari.service.common.dto.fingerprint.FingerprintTopicConstants.ENROLL_TOPIC;
 import static id.segari.service.common.dto.fingerprint.FingerprintTopicConstants.IDENTIFY_TOPIC;
@@ -361,16 +360,18 @@ public class ZKTecoFingerprintServiceImpl implements FingerprintService {
     @Override
     @Transactional
     public void sync(final long warehouseId) {
-        final List<FingerprintSubjectResponse> responses = fingerprintSubjectExternalService.getFingerprintSubject(warehouseId, identifierService.get(), sessionId.get());
-        if (!responses.isEmpty()) fingerprintSubjectRepository.deleteAll();
-        syncFingerprintSubjects(responses);
+        final List<FingerprintSubjectResponse> homeBaseSubjects = fingerprintSubjectExternalService.getFingerprintSubject(warehouseId, identifierService.get(), sessionId.get());
+        final List<FingerprintSubjectResponse> adhocUserSubjects = getAdhocUserSubjects();
+        if (!homeBaseSubjects.isEmpty() || !adhocUserSubjects.isEmpty()) fingerprintSubjectRepository.deleteAll();
+        final List<FingerprintSubjectResponse> result = new ArrayList<>(homeBaseSubjects.size() + adhocUserSubjects.size());
+        result.addAll(homeBaseSubjects);
+        result.addAll(adhocUserSubjects);
+        syncFingerprintSubjects(result);
     }
 
-    @Override
-    @Transactional
-    public void sync(final long warehouseId, final long internalToolsUserId) {
-        final List<FingerprintSubjectResponse> responses = fingerprintSubjectExternalService.getFingerprintSubject(warehouseId, internalToolsUserId, identifierService.get(), sessionId.get());
-        syncFingerprintSubjects(responses);
+    private List<FingerprintSubjectResponse> getAdhocUserSubjects() {
+        final List<Long> internalToolsUserIds = StreamSupport.stream(fingerprintSubjectRepository.findAll().spliterator(), false).map(FingerprintSubject::getId).toList();
+        return fingerprintSubjectExternalService.getFingerprintSubject(internalToolsUserIds, identifierService.get(), sessionId.get());
     }
 
     @Override

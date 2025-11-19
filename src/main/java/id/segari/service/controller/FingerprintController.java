@@ -42,12 +42,6 @@ public class FingerprintController {
         return new SuccessResponse<>(InternalResponseCode.SUCCESS, true);
     }
 
-    @PostMapping("/subject/partial-sync")
-    public SuccessResponse<Boolean> partialSync(@RequestBody @Valid FingerprintSubjectPartialSyncRequest request) {
-        fingerprintService.sync(request.warehouseId(), request.internalToolsUserId());
-        return new SuccessResponse<>(InternalResponseCode.SUCCESS, true);
-    }
-
     @PostMapping("/subject/add")
     public SuccessResponse<Boolean> add(@RequestBody @Valid FingerprintSubjectAdditionRequest request) {
         fingerprintService.add(request.employeeId(), request.adhoc());
