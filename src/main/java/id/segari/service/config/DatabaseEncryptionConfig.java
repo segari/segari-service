@@ -1,5 +1,6 @@
 package id.segari.service.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.context.annotation.Bean;
@@ -15,6 +16,12 @@ import java.util.Enumeration;
 @Configuration
 @ConditionalOnProperty(name = "segari.database.encryption.enabled", havingValue = "true")
 public class DatabaseEncryptionConfig {
+
+    @Value("${spring.datasource.url}")
+    private String dataSourceUrl;
+
+    @Value("${spring.datasource.username}")
+    private String dataSourceUsername;
 
     /**
      * Generates a machine-specific encryption key based on hardware characteristics.
@@ -62,8 +69,8 @@ public class DatabaseEncryptionConfig {
     @Bean
     @Primary
     public DataSource dataSource() {
-        String baseUrl = System.getProperty("spring.datasource.url",
-                "jdbc:h2:file:" + System.getProperty("APP_DATA_DIR", "./data") + "/segari");
+        // Use the datasource URL from Spring properties (already includes AUTO_SERVER and DATABASE_TO_UPPER)
+        String baseUrl = dataSourceUrl;
 
         // Generate machine-specific encryption key
         String encryptionKey = generateMachineSpecificKey();
@@ -73,7 +80,7 @@ public class DatabaseEncryptionConfig {
 
         return DataSourceBuilder.create()
                 .url(encryptedUrl)
-                .username("sa")
+                .username(dataSourceUsername)
                 .password(encryptionKey + " " + encryptionKey) // H2 format: "filePassword userPassword"
                 .driverClassName("org.h2.Driver")
                 .build();
