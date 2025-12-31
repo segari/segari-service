@@ -10,6 +10,16 @@ A Spring Boot service for managing USB printers (Zebra, XPrinter) with WebSocket
 
 ## Build Instructions
 
+### Initial Setup
+
+Before building the project for the first time, install the ZKFingerReader library to your local Maven repository:
+
+```bash
+./mvnw install:install-file -Dfile=libs/ZKFingerReader.jar -DgroupId=com.zkteco -DartifactId=zkfingerreader -Dversion=1.0 -Dpackaging=jar
+```
+
+This only needs to be done once per development machine.
+
 ### Standard JAR Build
 ```bash
 # Clean and compile
@@ -118,6 +128,23 @@ The application exposes the following REST API endpoints on port `54124`:
 # Run specific test class
 ./mvnw test -Dtest=SegariServiceApplicationTests
 ```
+
+## Database Migrations
+
+The project uses Flyway for database migrations with H2 file-based database.
+
+```bash
+# Rename migration files to add timestamp prefixes
+# This renames all .sql files in src/main/resources/db/migration/
+# that don't already have timestamps (V20251106110956 format)
+./mvnw -Pm
+```
+
+**Example:**
+- `V1__init_schema.sql` → `V20251106110956__init_schema.sql`
+- `create_users.sql` → `V20251106110957__create_users.sql`
+
+Migration files are located in `src/main/resources/db/migration/`.
 
 ## Configuration
 

@@ -39,7 +39,7 @@ public class GlobalExceptionHandler {
             HttpServletRequest request) {
 
         log.error("BaseException occurred: {}", ex.getMessage(), ex);
-        return new ResponseEntity<>(new ErrorResponse(InternalResponseCode.BASIC, ex.getMessage()), ex.getHttpStatus());
+        return new ResponseEntity<>(new ErrorResponse(InternalResponseCode.BASIC_ERROR, ex.getMessage()), ex.getHttpStatus());
     }
 
     @ExceptionHandler(NoHandlerFoundException.class)

@@ -19,6 +19,6 @@ public class IdentifierController {
 
     @GetMapping
     public SuccessResponse<IdentifierResponse> get(){
-        return new SuccessResponse<>(InternalResponseCode.SUCCESS, identifierService.get());
+        return new SuccessResponse<>(InternalResponseCode.SUCCESS, new IdentifierResponse(identifierService.get()));
     }
 }

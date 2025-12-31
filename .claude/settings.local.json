@@ -2,7 +2,10 @@
   "permissions": {
     "allow": [
       "Bash(find:*)",
-      "Bash(./mvnw:*)"
+      "Bash(./mvnw:*)",
+      "Bash(cmd /c \"dir /s /b D:\\code\\be\\segari-service\\target\\classes\\id\\segari\\service\\*.class | findstr $ | wc -l\")",
+      "Bash(\"D:\\Java\\temurin-25\\bin\\jpackage.exe\":*)",
+      "Bash(/d/Java/temurin-25/bin/jpackage.exe:*)"
     ],
     "deny": [],
     "ask": []
